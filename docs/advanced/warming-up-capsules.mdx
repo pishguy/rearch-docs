@@ -1,0 +1,47 @@
+---
+title: Warming Up Capsules
+description: Learn about warm up capsules and how to use them in rearch.
+---
+
+# Warming Up Capsules
+Warming up capsules is useful when you have
+asynchronous capsules whose values you want to access synchronously in the future,
+without needing all dependent capsules to themselves be asynchronous.
+This is especially helpful when dealing with something like a
+`SharedPreferences` or `FirebaseApp` instance (in Dart/Flutter) or a database connection (in Rust),
+which you can only get a copy of asynchronously.
+
+You *warm up* warm up capsules (yes, "warm up capsules" are a particular type of capsule used in this pattern)
+so that any dependent capsules are ready to use.
+For Flutter, there is a simple built-in extension method to help you warm up capsules, named `.toWarmUpWidget()`.
+
+<Warning>
+You *must* perform the warm up process *before any dependent capsules are read/initialized*;
+failing to do so will result in an unrecoverable error.
+</Warning>
+
+<Warning>
+You should only use application-wide warm up capsules for asynchronous values that:
+1. Are highly unlikely to fail.
+2. When fail, should be treated as unrecoverable error(s).
+
+If something in a warm up capsule fails in Flutter, anything below the warm up widget
+in the widget tree will be unaccessible and the error widget will be shown!
+</Warning>
+
+In Flutter, you can often (and when possible, should) use `.toWarmUpWidget()`
+to warm up capsules in more nested parts of the widget tree.
+Warming up capsules in a more nested location is a better practice than warming up capsules globally
+(i.e., right under `RearchBootstrapper`),
+but for cases like `SharedPreferences` and `FirebaseApp`, it makes sense to warm those up globally.
+
+
+## An Example
+Here is a quick example that shows you how to warm up a capsule.
+
+TODO
+
+
+## Credit
+Warming up capsules is not a pattern unqiue to rearch;
+in fact, I copied it directly from Riverpod and made some slight tweaks to make it easier.

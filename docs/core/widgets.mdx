@@ -1,0 +1,100 @@
+---
+title: Widgets (Flutter Only)
+description: Learn how to create custom widgets in rearch with Flutter.
+---
+
+# Widgets
+When creating a UI, it makes sense to boil down individual views to their functional requirements:
+- displaying certain data/state
+- modifying certain data/state
+- wrapping around/displaying other views
+
+As such, UI is often described as a *function of state*;
+rearch takes this one step further by classifying UI as a
+function of state *and* any side effect(s).
+
+Sound familiar? It's because capsules are also functions of state and side effect(s)!
+Just like capsules, you define widgets as functions consuming state and side effect(s).
+
+
+## Full Example
+First, let's define some capsules for use in our widgets.
+Capsules can be defined in the same file as widgets, or in completely separate file(s).
+```dart title="Defining some capsules"
+String _salutation(CapsuleHandle _) => 'Hello';
+
+(String, void Function(String)) firstName(CapsuleHandle use) => use.state('Alice');
+
+String greeting(CapsuleHandle use) {
+  return '${use(_salutation)} ${use(firstName).$1}!';
+} 
+```
+
+Next, let's use these capsules in a custom widget.
+```dart title="Defining a custom widget"
+// Check out Unnested!
+// Rearch and Unnested are like peanut butter and jelly, as seen here.
+@rearchWidget
+Widget myAppBody(CapsuleHandle use) {
+  return Unnest()
+      .scaffold(appBar: AppBar(title: Text(use(greeting))))
+      .center()
+      .textField(onChanged: use(firstName).$2);
+}
+
+// ...
+
+MyAppPage(child: const MyAppBody());
+```
+
+
+## Parameters
+Any parameters you add to `@rearchWidget` functions
+are automatically passed onto the generated widget's constructor, similar to `@rearchFactory`.
+```dart title="Passing custom parameters to a stateful widget"
+// Here's a modified version of the above example.
+@rearchWidget
+Widget greetingWidget(
+  CapsuleHandle use, {
+  required String greeting,
+  required Widget child,
+}) {
+  return Column(children: [
+    Text('$greeting, ${use(firstName).$1}!'),
+    child,
+  ]);
+}
+
+// ...
+
+const GreetingWidget(
+  greeting: 'Hey',
+  child: Text('Some child widget'),
+);
+```
+
+> You can even use `@rearchWidget` to create simple stateless widgets too, without the boilerplate;
+Just don't include the `CapsuleHandle` parameter!
+
+Here's an example creating a stateless widget with some parameters.
+```dart title="Stateless widget with parameters"
+@rearchWidget
+Widget myTextCard(BuildContext context, {required String title}) {
+  return Card(
+    child: Text(
+      title,
+      style: Theme.of(context).textTheme.headlineLarge,
+    ),
+  );
+}
+```
+
+<Info>Notice how we depended on the `BuildContext` above. You can also depend on the widget's `key` too!</Info>
+
+Finally, here's an example creating a simple reusable widget without any parameters.
+```dart title="Stateless widget without parameters"
+@rearchWidget
+Widget myIcon() {
+  return Icon(Icons.clock, color: Colors.purple);
+}
+```

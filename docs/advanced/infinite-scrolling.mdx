@@ -1,0 +1,20 @@
+---
+title: Infinite Scrolling (Flutter Only)
+description: Learn how to create infintely scrolling lists in rearch.
+---
+
+# Infinite Scrolling
+Infinite scrolling is relatively easy to do in rearch!
+Rearch gives you the flexibility to do it in almost any way you choose,
+but here are the two standard ways:
+1. Use a factory and let Flutter handle the disposal of out-of-view widgets (preferred).
+You can easily customize how long widgets are kept alive with `use.automaticKeepAlive`!
+2. Keep your own cache and grow it as the user scrolls (not as recommended).
+Whenever new widgets come into view, they add elements to a capsule of type `List<Future<T>>`.
+
+Both approaches described above utilize a more advanced technique
+described in [Reducing Builds](/advanced/reducing-builds).
+
+## TODO
+Zapp! of both of the above with `/packages/examples/xyz`.
+Waiting on https://github.com/invertase/docs.page/pull/278

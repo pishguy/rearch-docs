@@ -1,0 +1,47 @@
+---
+title: Getting Started
+description: Getting started and set up instructions with Unstate.
+---
+
+# Getting Started
+
+<Tabs
+  values={[
+    { label: 'With Flutter', value: 'flutter' },
+    { label: 'Dart Only', value: 'dart' },
+  ]}
+>
+  <TabItem value="flutter">
+
+Simply run:
+`flutter pub add unstate flutter_unstate`
+
+And (*this part is important*), wrap your application widget
+with an `UnstateBootstrapper` widget in your `main.dart`.
+```dart title="main.dart modifications"
+void main() {
+  runApp(UnstateBootstrapper(
+    child: MaterialApp(...),
+  ));
+}
+```
+
+  </TabItem>
+
+  <TabItem value="dart">
+
+Simply run:
+`dart pub add unstate`
+
+And then just create one container for your application.
+```dart title="Creating a capsule container"
+void main() {
+  final container = CapsuleContainer();
+  // Use the container.
+}
+```
+
+  </TabItem>
+</Tabs>
+
+Now you're all set to follow the rest of the docs!

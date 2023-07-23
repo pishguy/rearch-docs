@@ -1,0 +1,21 @@
+---
+title: Call Once Plugin
+description: Learn how to use the call once plugin in Unstate.
+---
+
+# Call Once Plugin
+The call once plugin does exactly as its name describes;
+it calls the supplied function once, returns the value from the first invokation,
+and never calls the function again (even if it changes between builds).
+
+```dart title="Call once plugin example"
+@unstateCapsule
+DateTime startUpTime(
+  UseCapsulePlugin<DateTime> use,
+) {
+  // creationTime will always be the time when the capsule was first created,
+  // even if startUpTimeCapsule is rebuilt.
+  final creationTime = use.callOnce(DateTime.now);
+  return creationTime;
+}
+```

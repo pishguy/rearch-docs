@@ -1,0 +1,193 @@
+---
+title: Capsules
+description: Learn the basics behind capsules in rearch.
+---
+
+# Capsules
+Capsules are the most fundamental building block of rearch.
+Capsules en-_capsulate_ some data, thus their name.
+
+<Info>
+  Data here encompasses more than just raw data; it also includes functions.
+  This is an important consideration, as rearch is highly functional.
+</Info>
+
+
+## The Theory
+When you start designing an application,
+it is often easiest to think in terms of the data you are modeling
+and how that data interacts with other data in your application.
+Consequently, when you go to create some non-trivial state,
+chances are high that it depends on some other form of state in your application.
+
+
+### Functions of State
+Capsules let you think in this manner by themselves being *functions of state*
+(and side effects too, but more on that later).
+This may sound wishy-washy, so here is a concrete example:
+```dart title="Basic count and countPlusOne capsules"
+int count(CapsuleHandle use) => 0;
+
+int countPlusOne(CapsuleHandle use) => use(count) + 1;
+```
+Notice here how `countPlusOne` *consumes* `count`;
+i.e., `countPlusOne` is a function of state, where the state is the current `count`!
+
+As you can see in the above example, capsules are nothing special;
+every capsule is merely a function that consumes a `CapsuleHandle`.
+
+
+### Immutability
+Capsules were designed with the intent that the data they produce is *immutable*.
+In Rust, this is enforced via requiring capsule data to be `Clone`,
+and giving you a cloned copy of the data (you're welcome to wrap non-`Clone` types in `Arc`).
+In Dart, it is up to you to make sure you do not directly mutate a Capsule's data
+without using one of the side effects (again, more on side effects later).
+
+
+## The `CapsuleHandle`
+So what is this magical `CapsuleHandle` parameter all capsules consume?
+The `CapsuleHandle` is actually not magic at all;
+it is just a temporary lease from the `Container` (next page) to build a capsule's data,
+given the state of the container.
+
+More specifically, the `CapsuleHandle` is a composition of two other types:
+- The `CapsuleReader` allows the capsule to read the current data of itself and other capsules
+- The `SideEffectRegistrar` allows the capsule to register side effects
+
+<Warning>
+Do not use a `CapsuleHandle` across an asynchronous gap
+(i.e., used after any `await`s or in a callback) in Dart!
+Although you may not see issues immediately,
+know that you may encounter issues when in more complex situations.
+(Rust does not have this issue due to its ownership rules.)
+</Warning>
+
+
+### The `CapsuleReader`
+The `CapsuleReader` provides the familiar `use(...)` syntax in Dart and `get(...)` in Rust.
+<CodeGroup title="Using The CapsuleReader">
+  ```dart
+  int count(CapsuleHandle _) => 0;
+
+  int countPlusOne(CapsuleHandle use) {
+    return use(count) + 1;
+  }
+  ```
+
+  ```rust
+  fn count(_: CapsuleHandle) -> u8 {
+      0
+  }
+
+  fn count_plus_one(CapsuleHandle { mut get, .. }: CapsuleHandle) -> u8 {
+      // Please note the following distinction in syntax based on toolchain;
+      // the nightly syntax will be used in all remaining examples.
+      // get.get(count) + 1 // Stable Rust syntax
+      get(count) + 1        // Nightly Rust syntax with "better-api" feature
+  }
+  ```
+</CodeGroup>
+
+
+### The `SideEffectRegistrar`
+The `SideEffectRegistrar` provides the familiar set of `use.fooBar()` side effects in Dart 
+and `register(effect1(), effect2())` in Rust. See [the docs on side effects](/core/effects) for more.
+
+
+## Asynchronous Capsules
+Often, you want to make a capsule that wraps around some asynchronous code
+so that asynchronous code can be utilized in other capsules.
+This poses an interesting problem, as every capsule is synchronous by nature.
+The solution: side effects!
+Side effects are indeed the mechanism that allows for external events to trigger capsule updates,
+which is exactly what we need here (but again, more on side effects later)!
+
+
+### An Example
+<CodeGroup title="Creating Asynchronous Capsules">
+  ```dart
+  int countCapsule(CapsuleHandle _) => 0;
+
+  /// Our "raw" async capsule that directly returns a Future (can also return a Stream).
+  Future<int> delayedAsyncCapsule(CapsuleHandle use) async {
+    // All capsule reads and side effects *must* be before the first `await`.
+    // (But often, it is preferable to avoid side effects in async capsules.)
+    final count = use(countCapsule);
+
+    final delayedCount = await Future.delayed(
+      const Duration(seconds: 1),
+      () => count,
+    );
+
+    return delayedCount + 1;
+  }
+
+  /// Our "wrapper" capsule that returns an AsyncValue, which is often more useful in UI code.
+  /// This wrapper also ensures that delayedAsyncCapsule's value is cached within the Container,
+  /// as this capsule utilizes a side effect (use.future in this case, but more on effects later).
+  AsyncValue<int> delayedCapsule(CapsuleHandle use) {
+    final delayed = use(delayedAsyncCapsule);
+    return use.future(delayed);
+  }
+
+  // A macro like the following is *planned* to make this easier/less error-prone.
+  // If you would like to see this macro sooner rather than later, please +1 this issue:
+  // https://github.com/dart-lang/language/issues/3210
+  @asyncCapsule
+  Future<int> delayed(
+    @countCapsule int count,
+  ) async {
+    final delayedCount = await Future.delayed(
+      const Duration(seconds: 1),
+      () => count,
+    );
+    return delayedCount + 1;
+  }
+  ```
+
+  ```rust
+  // There are a few different ways to do this, but the following is the most standard way.
+  // This requires the tokio-side-effects feature to be enabled.
+  // TODO
+  ```
+</CodeGroup>
+
+
+### Refreshable Asynchronous Capsules
+The created `delayedCapsule`/`delayed_capsule` in the above example
+is just a read-only "view" of the future.
+It doesn't contain any state of its own and merely caches the current value of the async capsule.
+If you want to refresh the delayed capule's state, say by fetching new data from online,
+we need a slightly different approach which will swap in a new future.
+
+> TODO just wrapper around mutation or something that recomputes future
+
+
+### What is `AsyncValue`/`AsyncState`?
+You may notice that when applying the asynchronous side effects,
+you are given data of type `AsyncValue<T>`/`AsyncState<T>`.
+
+This is entirely intentional;
+it allows you to handle the current state of asynchronous code synchronously,
+which is needed as rearch *builds are completely synchronous* and (in Dart) *cannot throw*.
+As such, it is highly recommended that you learn how to properly work with `AsyncValue`/`AsyncState`
+instead of trying to avoid it.
+
+
+#### Dart's `AsyncValue`
+`AsyncValue`s represent one of three states for futures and streams:
+- Future/stream is still loading and has not emitted anything (`AsyncLoading`)
+- Future/stream emitted data (`AsyncData`)
+- Future/stream emitted an error (`AsyncError`)
+
+See `AsyncValue`'s API docs for more.
+
+
+#### Rust's `AsyncState`
+`AsyncState`s represent one of three states for futures and mutations:
+- Future has not yet been set (`Idle`)
+- Future is still loading and has not emitted anything (`Loading`)
+- Future emitted data (`Complete`)
+
+See `AsyncState`'s API docs for more.

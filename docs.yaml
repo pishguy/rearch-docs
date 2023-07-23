@@ -1,0 +1,65 @@
+name: Rearch
+description: Re-imagined approach to application design and architecture
+theme: "#7f00ff"
+automaticallyDisplayName: false
+logo: https://github.com/GregoryConrad/rearch-docs/blob/main/assets/logo.png?raw=true
+
+# TODO search: https://docsearch.algolia.com/apply
+# docsearch:
+#   appId: R2IYF7ETH7
+#   apiKey: 599cec31baffa4868cae4e79f180729b
+#   indexName: docsearch
+
+anchors:
+  - title: Pub.dev Package
+    icon: cube
+    link: https://pub.dev/packages/rearch
+  - title: Crates.io Crate
+    icon: cube
+    link: https://crates.io/crates/rearch
+  - title: GitHub (Dart)
+    icon: github
+    link: https://github.com/GregoryConrad/rearch-dart
+  - title: GitHub (Rust)
+    icon: github
+    link: https://github.com/GregoryConrad/rearch-rs
+  - title: GitHub (Docs)
+    icon: github
+    link: https://github.com/GregoryConrad/rearch-docs
+  # TODO funding & discord
+  # - title: 'Sponsor Me'
+  #   icon: 'hand-holding-dollar'
+  #   link:
+
+sidebar:
+  - - Overview
+    - /
+  - - Getting Started
+    - /getting-started
+  - - Core Components
+    - - - Capsules
+        - /core/capsules
+      - - Containers
+        - /core/containers
+      - - Factories
+        - /core/factories
+      - - Widgets (Flutter Only)
+        - /core/widgets
+      - - Side Effects
+        - /core/effects
+  - - Side Effect Library
+    - - - Call Once
+        - /effects/callonce
+      - - Persistance
+        - /effects/persist
+  - - Advanced
+      - - Warming Up Capsules (Async to Sync)
+        - /advanced/warming-up-capsules
+      - - Reducing Builds
+        - /advanced/reducing-builds
+      - - Infinite Scrolling
+        - /advanced/infinite-scrolling
+      - - Scoping State
+        - /advanced/scoping-state
+  - - FAQs
+    - /faqs

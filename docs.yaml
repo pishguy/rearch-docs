@@ -53,7 +53,7 @@ sidebar:
       - - Persistance
         - /effects/persist
   - - Advanced
-      - - Warming Up Capsules (Async to Sync)
+    - - - Warming Up Capsules (Async to Sync)
         - /advanced/warming-up-capsules
       - - Reducing Builds
         - /advanced/reducing-builds

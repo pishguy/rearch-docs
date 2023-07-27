@@ -83,10 +83,10 @@ To *temporarily* listen to capsules, see the following example.
 <CodeGroup title="Temporarily Listening to Capsules">
   ```dart
   final container = CapsuleContainer();
-  final handle = container.listen((use) => print(use(fooBarCapsule)));
+  final disposeListener = container.listen((use) => print(use(fooBarCapsule)));
 
   // When you no longer need to listen to changes:
-  handle.dispose();
+  disposeListener();
   ```
 
   ```rust

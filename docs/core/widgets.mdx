@@ -35,7 +35,7 @@ Next, let's use these capsules in a custom widget.
 // Check out Unnested!
 // Rearch and Unnested are like peanut butter and jelly, as seen here.
 @rearchWidget
-Widget myAppBody(CapsuleHandle use) {
+Widget myAppBody(WidgetHandle use) {
   return Unnest()
       .scaffold(appBar: AppBar(title: Text(use(greeting))))
       .center()
@@ -55,7 +55,7 @@ are automatically passed onto the generated widget's constructor, similar to `@r
 // Here's a modified version of the above example.
 @rearchWidget
 Widget greetingWidget(
-  CapsuleHandle use, {
+  WidgetHandle use, {
   required String greeting,
   required Widget child,
 }) {
@@ -74,7 +74,7 @@ const GreetingWidget(
 ```
 
 > You can even use `@rearchWidget` to create simple stateless widgets too, without the boilerplate;
-Just don't include the `CapsuleHandle` parameter!
+Just don't include the `WidgetHandle` parameter!
 
 Here's an example creating a stateless widget with some parameters.
 ```dart title="Stateless widget with parameters"

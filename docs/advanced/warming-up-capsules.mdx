@@ -11,9 +11,11 @@ This is especially helpful when dealing with something like a
 `SharedPreferences` or `FirebaseApp` instance (in Dart/Flutter) or a database connection (in Rust),
 which you can only get a copy of asynchronously.
 
-You *warm up* warm up capsules (yes, "warm up capsules" are a particular type of capsule used in this pattern)
+You *warm up* warm up capsules
+(yes, "warm up capsules" are a particular type of capsule used in this pattern)
 so that any dependent capsules are ready to use.
-For Flutter, there is a simple built-in extension method to help you warm up capsules, named `.toWarmUpWidget()`.
+For Flutter, there is a simple built-in extension method to help you warm up capsules,
+named `.toWarmUpWidget()`.
 
 <Warning>
 You *must* perform the warm up process *before any dependent capsules are read/initialized*;
@@ -39,7 +41,63 @@ but for cases like `SharedPreferences` and `FirebaseApp`, it makes sense to warm
 ## An Example
 Here is a quick example that shows you how to warm up a capsule.
 
-TODO
+<CodeGroup title="Warming up asynchronous warm up capsules">
+  ```dart
+  // First, let's create a capsule in warm up mode.
+  //
+  // This generates a:
+  // - sharedPrefsAsyncCapsule  (has type of Future<SharedPreferences>)
+  // - sharedPrefsWarmUpCapsule (has type of AsyncValue<SharedPreferences>)
+  // - sharedPrefsCapsule       (has type of SharedPreferences)
+  //
+  // The async capsule is just like any other async capsule and houses the future.
+  // The warm up capsule is the capsule you can use to perform the warm up.
+  // Finally, the sharedPrefsCapsule is the one you can use synchronously!
+  @AsyncCapsule(mode: AsyncMode.warmUp)
+  Future<SharedPreferences> sharedPrefs() => SharedPreferences.getInstance();
+
+  int? count(CapsuleHandle use) {
+    // Notice how `use` returns a synchronous `SharedPreferences`,
+    // i.e., *not* an AsyncValue<SharedPreferences>.
+    return use(sharedPrefsCapsule).getInt('count');
+  }
+
+  // Now, let's create our "warm up widget"
+  @rearchWidget
+  Widget globalWarmUps({required Widget child}) {
+    return [
+      // When any of the following warm up capsules error out,
+      // the errorBuilder is invoked.
+      // If any are still loading, the loading widget is shown.
+      // If there are no AsyncErrors or AsyncLoadings, child is shown.
+      // Note: all loading happens in parallel automatically
+      // to speed up your loading times!
+
+      use(sharedPrefsWarmUpCapsule),
+      // other warm ups here...
+    ].toWarmUpWidget(
+      child: child,
+      loading: const Center(child: CircularProgressIndicator.adaptive()),
+      errorBuilder: (errors) => Column(children: [
+        // You might want your error display here to be prettier than this one.
+        // You can even wrap the Column in a MaterialApp/Scaffold.
+        for (final AsyncError(:error, :stackTrace) in errors)
+          Text('$error\n$stackTrace'),
+      ]),
+    );
+  }
+
+  void main() {
+    runApp(RearchBootstrapper(
+      child: GlobalWarmUps(child: MaterialApp(...)),
+    ));
+  }
+  ```
+</CodeGroup>
+
+And here's a complete, runnable version of the above.
+
+<Zapp id="github/GregoryConrad/rearch-dart/tree/main/packages/examples/count_warm_up" />
 
 
 ## Credit

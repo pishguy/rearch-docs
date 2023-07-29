@@ -3,6 +3,8 @@ title: Rearch
 description: The documentation homepage of rearch.
 ---
 
+# rearch
+
 <p align="center">
 <img src="https://github.com/GregoryConrad/rearch-docs/blob/main/assets/banner.jpg?raw=true" width="100%" alt="Banner" />
 </p>
@@ -28,4 +30,44 @@ Framework.
 
 
 ## In a Nutshell 
-TODO grab from the two READMEs
+Define your "capsules" (en-_capsulated_ pieces of state) at the top level:
+<CodeGroup title="Defining capsules">
+  ```dart
+  // Capsules are simply functions that consume a CapsuleHandle.
+  // The CapsuleHandle lets you get the data of other capsules,
+  // in addition to using a large variety of side effects.
+
+  // This particular capsule manages a count from a classic example counter app,
+  // using the state side effect.
+  (int, void Function()) countCapsule(CapsuleHandle use) {
+    final (count, setCount) = use.state(0);
+    return (count, () => setCount(count + 1));
+  }
+
+  // This capsule provides the current count, plus one.
+  int countPlusOneCapsule(CapsuleHandle use) => use(countCapsule).$1 + 1;
+  ```
+
+  ```rust
+  // Capsules are simply functions that consume a CapsuleHandle.
+  // The CapsuleHandle lets you get the data of other capsules,
+  // in addition to using a large variety of side effects.
+
+  // This particular capsule manages a count from a classic example counter app,
+  // using the state side effect.
+  fn count(
+      CapsuleHandle { register, .. }: CapsuleHandle,
+  ) -> (u32, impl Fn() + Clone + Send + Sync) {
+      let (state, set_state) = register(side_effects::state(0));
+      let state = *state;
+      let increment = move || set_state(state + 1);
+      (state, increment)
+  }
+
+  // This capsule provides the current count, plus one.
+  fn count_plus_one(CapsuleHandle { mut get, .. }: CapsuleHandle) -> u32 {
+      let (count, _increment) = get(count);
+      count + 1
+  }
+  ```
+</CodeGroup>

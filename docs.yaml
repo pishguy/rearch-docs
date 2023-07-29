@@ -10,6 +10,8 @@ logo: https://github.com/GregoryConrad/rearch-docs/blob/main/assets/logo.png?raw
 #   apiKey: 599cec31baffa4868cae4e79f180729b
 #   indexName: docsearch
 
+# TODO hide that extra GitHub anchor that points to docs at the bottom
+
 anchors:
   - title: Pub.dev Package
     icon: cube
@@ -36,6 +38,8 @@ sidebar:
     - /
   - - Getting Started
     - /getting-started
+  - - FAQs
+    - /faqs
   - - Core Components
     - - - Capsules
         - /core/capsules
@@ -43,23 +47,21 @@ sidebar:
         - /core/containers
       - - Factories
         - /core/factories
-      - - Widgets (Flutter Only)
+      - - (Flutter) Widgets
         - /core/widgets
       - - Side Effects
         - /core/effects
-  - - Side Effect Library
-    - - - Call Once
-        - /effects/callonce
-      - - Persistance
-        - /effects/persist
   - - Advanced
     - - - Warming Up Capsules (Async to Sync)
         - /advanced/warming-up-capsules
       - - Reducing Builds
         - /advanced/reducing-builds
-      - - Infinite Scrolling
+      - - (Flutter) Infinite Scrolling
         - /advanced/infinite-scrolling
-      - - Scoping State
+      - - (Flutter) Scoping State
         - /advanced/scoping-state
-  - - FAQs
-    - /faqs
+  - - Side Effect Library
+    - - - Call Once
+        - /effects/callonce
+      - - Persistance
+        - /effects/persist

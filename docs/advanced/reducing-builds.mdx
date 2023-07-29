@@ -153,7 +153,7 @@ Widget myListItem({
 ```
 
 Notice above how the parameter is declared as `CapsuleReader use`;
-while you actually get a full `CapsuleHanlde` here for the inline capsule,
+while you actually get a full `CapsuleHandle` here for the inline capsule,
 you must be careful to not use any side effects (`use.fooBar()`) or *you will cause leaks*.
 Thus, it is considered to be a best practice to prevent yourself from using side effects
 by declaring the parameter type as `CapsuleReader` instead of letting it get inferred

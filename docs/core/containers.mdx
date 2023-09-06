@@ -106,25 +106,30 @@ and read it once to ensure it has been initialized and is listening.
 <CodeGroup title="Indefinitely Listening to Capsules">
   ```dart
   void listener(CapsuleHandle use) {
-    // Register a no-op side effect (you can use any side effect you like here)
-    use.register((_) {});
+    // asListener is a no-op side effect that you can use
+    // to declare capsules as listeners
+    use.asListener();
 
     // Listen to your data like normal
     print(use(countCapsule));
   }
 
+  // Initialize the listener so it will get updates
   final container = CapsuleContainer();
   container.read(listener);
   ```
 
   ```rust
   fn listener(CapsuleHandle { mut get, register }: CapsuleHandle) {
-      register(()); // register (), the no-op side effect
+      // as_listener is a no-op side effect that you can use
+      // to declare capsules as listeners
+      register(as_listener());
 
       // Listen to data like normal
       println!("{}", get(foo_bar_capsule));
   }
 
+  // Initialize the listener so it will get updates
   let container = Container::new();
   container.read(listener);
   ```

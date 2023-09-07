@@ -4,12 +4,10 @@ theme: "#7f00ff"
 automaticallyDisplayName: false
 logo: https://github.com/GregoryConrad/rearch-docs/blob/main/assets/logo.png?raw=true
 
-# TODO search: https://docsearch.algolia.com/apply
-# docsearch:
-#   appId: R2IYF7ETH7
-#   apiKey: 599cec31baffa4868cae4e79f180729b
-#   indexName: docsearch
-
+docsearch:
+  appId: 36803VZSV2
+  apiKey: 5df1db524c46ae0d48e32640d85205b8
+  indexName: rearch-gsconrad
 
 anchors:
   - title: Pub.dev Package

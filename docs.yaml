@@ -64,5 +64,5 @@ sidebar:
   - - Side Effect Library
     - - - Call Once
         - /effects/callonce
-      - - Persistance
+      - - Persistence
         - /effects/persist

@@ -1,21 +1,18 @@
 ---
-title: Call Once Plugin
-description: Learn how to use the call once plugin in Unstate.
+title: Call Once
+description: Learn how to use the callonce side effect in rearch.
 ---
 
-# Call Once Plugin
-The call once plugin does exactly as its name describes;
+# Call Once
+The call once side effect does exactly as its name describes;
 it calls the supplied function once, returns the value from the first invokation,
 and never calls the function again (even if it changes between builds).
 
-```dart title="Call once plugin example"
-@unstateCapsule
-DateTime startUpTime(
-  UseCapsulePlugin<DateTime> use,
-) {
+```dart title="Call once side effect example"
+DateTime startUpTimeCapsule(CapsuleHandle use) {
   // creationTime will always be the time when the capsule was first created,
-  // even if startUpTimeCapsule is rebuilt.
-  final creationTime = use.callOnce(DateTime.now);
+  // even if startUpTimeCapsule was to rebuild.
+  final creationTime = use.callonce(DateTime.now);
   return creationTime;
 }
 ```

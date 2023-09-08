@@ -1,71 +1,76 @@
 ---
-title: Persist Plugin
-description: Learn how to use the persist plugin in Unstate.
+title: Persist
+description: Learn how to use the persist side effect in rearch.
 ---
 
-# Persist Plugin
-The persist plugin is an extremely elegant mechanism to handle data persistence,
+# Persist
+The persist side effect is an extremely elegant mechanism to handle data persistence,
 and I would go as far as to argue that it is the best approach to state persistence
 in any Dart/Flutter state management solution available today.
-The persist plugin simply:
+The persist side effect simply:
 - Consumes a function to `read()` data
 - Consumes a function to `save()` data changes
 - Returns the current persisted value, along with the status of the last save
 
-Internally, the persist plugin hijacks capsule state change events to persist new states
-and give you (easy) control over the entire process!
-In my opinion, the persist plugin perfectly demonstrates exactly how powerful plugins can be.
+<Info>
+  When your database exposes a stream-based API,
+  it is sometimes a good choice to use that directly for easier reactivity.
+  However, when you only have access to a Future-based API or want more control over state updates,
+  the persist side effect is your best bet to handle persistence
+  (given you are the only writer to the data in question).
+</Info>
 
-Also, the `usePersistPlugin` is completely database agnostic, so that:
+The persist side effect is completely database agnostic, so that:
 - Your capsule remains highly testable
 - You can swap out the database instance/implementation at runtime
 
-Finally, the persist plugin is also highly adaptable, allowing you to use it for:
+Finally, the persist side effect is also highly adaptable, allowing you to use it for:
 - [Optimistic state updates](#optimistic-state-updates)
 - [Pessimistic state updates](#pessimistic-state-updates)
 - [An offline cache](#acting-as-an-offline-cache)
 - [Persisting with defaults](#persisting-with-defaults)
 - And anything else you can possibly imagine!
 
-<Info>
-  The persist plugin only applies to capsules that return an `AsyncValue`, because persistence itself is asynchronous.
-  If you would like to use persistence with a synchronous capsule (without `AsyncValue`),
-  [you need to wrap an `AsyncValue` capsule with a synchronous capsule that specifies a default value](#persisting-with-defaults)
-</Info>
-
 
 ## Optimistic State Updates
-Optimistic state updates are often useful when you expect database saves to succeed (like for an on-device datastore).
+Optimistic state updates are often useful when you expect database saves to succeed
+(like for an on-device datastore).
 They work by *optimistically* updating the state of the capsule as soon as a new state is available,
-then attempting to persist it.
+*then* attempting to persist it.
 If the persistence fails (i.e., `save()` fails), the current state of the capsule is rolled back.
 
-Here's what this concept looks like with the persist plugin.
+Here's what this concept looks like with the persist side effect.
 
 ```dart title="Optimistic persist example"
-AsyncValue<int> count(
-  @C(myDbCapsule) MyDb myDb,
-  UseCapsulePlugin<AsyncValue<int>> use,
-) {
-  // Specify the initial state as loading
-  final currState = use.currState;
-  use.callOnce(() => currState.value = const AsyncLoading());
-
-  // Let's get the current value known to be saved
-  final currSavedValue = use.persist(
-    read: () async => await myDb.readCount(),
-    save: (i) async => await myDb.saveCount(i),
+(AsyncValue<int>, void Function(int)) persistedCountManager(CapsuleHandle use) {
+  final sharedPrefs = use(sharedPrefsCapsule);
+  final (nullableCountState, setPersistedCount) = use.persist<int?>(
+    read: () async => sharedPrefs.getInt('count'),
+    write: (newCount) async => sharedPrefs.setInt('count', newCount!),
   );
 
-  // Check to see if our state is out of sync or needs to be rolled back.
-  final stateNeedsFirstDataUpdate = currState.value.data is None && currSavedValue.data is Some;
-  final stateNeedsRollback = currSavedValue is AsyncError;
-  if (stateNeedsFirstUpdate || stateNeedsRollback) {
-    currState.value = currSavedValue;
+  // SharedPrefs returns null if a value hasn't been set before,
+  // so we fill in a default here.
+  final countState = nullableCountState.map((count) => count ?? 0);
+
+  final (optimisticCount, setOptimisticCount) = use.state<int?>(null);
+
+  void setCount(int newCount) {
+    setOptimisticCount(newCount);
+    setPersistedCount(newCount);
   }
 
-  // Simply return the current state, since we are expecting updates to succeed
-  return currState.value;
+  return (
+    switch (countState) {
+      // When we can, stitch in our data optimistically
+      AsyncLoading() when optimisticCount != null =>
+        AsyncLoading(Some(optimisticCount)),
+
+      // Otherwise, return the data as-is
+      _ => countState,
+    },
+    setCount,
+  );
 }
 ```
 
@@ -77,88 +82,73 @@ They work by *pessimistically* waiting to update a capsule's state until after
 it persists successfully, and not before.
 Therefore, the capsule's state will *always* be consistent with the persisted state.
 
-Here's what this concept looks like with the persist plugin.
+Here's what this concept looks like with the persist side effect.
 
 ```dart title="Pessimistic persist example"
-@unstateCapsule
-AsyncValue<int> count(
-  @C(myDbCapsule) MyDb myDb,
-  UseCapsulePlugin<AsyncValue<int>> use,
-) {
-  final currSavedValue = use.persist(
-    read: () async => await myDb.readCount(),
-    save: (i) async => await myDb.saveCount(i),
+(AsyncValue<int>, void Function(int)) persistedCountManager(CapsuleHandle use) {
+  final sharedPrefs = use(sharedPrefsCapsule);
+  final (nullableCountState, setPersistedCount) = use.persist<int?>(
+    read: () async => sharedPrefs.getInt('count'),
+    write: (newCount) async => sharedPrefs.setInt('count', newCount!),
   );
 
-  // Return the last successfully saved value, since we have a chance of failure
-  return currSavedValue;
+  // SharedPrefs returns null if a value hasn't been set before,
+  // so we fill in a default here.
+  final countState = nullableCountState.map((count) => count ?? 0);
+
+  return (countState, setPersistedCount);
 }
 ```
 
 
 ## Acting as an Offline Cache
-The persist plugin is fairly adaptable, so you can even use it as an offline cache!
-You can refresh your offline cache from the latest online data whenever you choose;
-just trigger a `rebuild()` on the capsule that fetches the lastest data
-(`latestCountFromOnlineAsyncCapsule` below)!
-
-```dart title="Acting as an offline cache"
-@unstateCapsule
-Future<int> latestCountFromOnline() async {
-  await Future<void>.delayed(const Duration(seconds: 1));
-  return 1234;
-}
-
-@unstateCapsule
-AsyncValue<int> cachedCount(
-  @C(latestCountFromOnlineCapsule) AsyncValue<int> latestCountValue,
-  @C(myDbCapsule) MyDb myDb,
-  UseCapsulePlugin<AsyncValue<int>> use,
-) {
-  final currSavedValue = use.persist(
-    read: () async => await myDb.readCount(),
-    save: (i) async => await myDb.saveCount(i),
-  );
-
-  // We return the latest online state/data but also "stitch" in our
-  // cached offline data in case the online fetch fails.
-  return latestCountValue.fillInPreviousData(currSavedValue.data);
-}
+TODO we need a separate side effect for this, something like:
+```dart
+final (cache, refreshCache) = use.cache(
+  refreshOnFirstBuild: true,
+  getLatest: () async => readOnline(),
+  readCache: () async => readCache(),
+  writeCache: (newCache) async => writeCache(newCache),
+);
 ```
+
+> If you are interested in creating such a side effect, please open a PR!
 
 
 ## Persisting With Defaults
+> Typically, *it is not a good idea to hide `AsyncValue`s* behind a default value
+just because you don't understand how `AsyncValue`s work or don't want to deal with them!
+Instead, learn how to embrace `AsyncValue` and your code will improve tenfold.
+
 To persist some state, but also allow consumers of your capsule to only receive synchronous data,
 you can create a wrapper capsule around an `AsyncValue` capsule that exposes a default value.
-*Wrapping capsules* is a common pattern in Unstate, since capsules are designed to be composable!
+*Wrapping capsules* is a common pattern in rearch, since capsules are designed to be composable!
 
 <Warning>
-  Typically, *it is not a good idea to hide `AsyncValue`s* behind a default value
-  just because you don't understand how `AsyncValue`s work or don't want to deal with them!
-  Instead, learn how to embrace `AsyncValue` and your code will improve tenfold.
+  You will not be able to know if an error occurs or if the data is still loading
+  with this approach, which is why it is often discouraged!
 </Warning>
 
-With that warning being said, here is a quick example on how to expose a synchronous copy
+With that warning out of the way, here is a quick example on how to expose a synchronous copy
 of some persisted data.
 
-> You will not be able to know if an error occurs or if the data is still loading with this approach,
-which is why it is often discouraged!
-
 ```dart title="Wrapping a persist capsule with a synchronous capsule"
-@unstateCapsule
-AsyncValue<int> asyncCount(
-  @C(myDbCapsule) MyDb myDb,
-  UseCapsulePlugin<AsyncValue<int>> use,
-) {
-  return use.persist(
-    read: () async => await myDb.readCount(),
-    save: (i) async => await myDb.saveCount(i),
+(AsyncValue<int>, void Function(int)) persistedCountManager(CapsuleHandle use) {
+  final sharedPrefs = use(sharedPrefsCapsule);
+  final (nullableCountState, setPersistedCount) = use.persist<int?>(
+    read: () async => sharedPrefs.getInt('count'),
+    write: (newCount) async => sharedPrefs.setInt('count', newCount!),
   );
+
+  // SharedPrefs returns null if a value hasn't been set before,
+  // so we fill in a default here.
+  final countState = nullableCountState.map((count) => count ?? 0);
+
+  return (countState, setPersistedCount);
 }
 
-@unstateCapsule
-int count(@C(asyncCountCapsule) AsyncValue<int> count) {
-  final myDefault = 0;
-  return count.dataOr(myDefault).
+int countCapsule(CapsuleHandle use) {
+  const myDefault = 0;
+  return use(persistedCountManager).$1.dataOr(myDefault);
 }
 ```

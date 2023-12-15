@@ -25,11 +25,11 @@ anchors:
   - title: GitHub (Docs)
     icon: github
     link: https://github.com/GregoryConrad/rearch-docs
-  # TODO hide that extra GitHub anchor that points to docs at the bottom
-  # TODO funding & discord
-  # - title: 'Sponsor Me'
-  #   icon: 'hand-holding-dollar'
-  #   link:
+  - title: 'Sponsor Me'
+    icon: 'hand-holding-dollar'
+    link: https://github.com/sponsors/GregoryConrad
+  # TODO discord or community of some sort
+  # TODO hide that extra GitHub anchor that points to the docs at the bottom
 
 sidebar:
   - - Overview

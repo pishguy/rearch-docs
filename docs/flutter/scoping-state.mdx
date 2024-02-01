@@ -1,13 +1,16 @@
 ---
 title: Scoping State
-description: Learn how to scope state in rearch.
+description: Learn how to scope state in ReArch.
 ---
 
 # Scoping State 
-This page is a WIP, but you can use a RearchConsumer in conjunction with InheritedWidget.
+This page is a WIP, but you can create a new `RearchConsumer` in conjunction
+with a new `InheritedWidget`.
+You make a new `RearchConsumer` that manages some state (or takes in some data via its constructor)
+and then pass this state into a new `InheritedWidget` to provide said state to all descendants.
 
 Something like the following macro is planned that will kill
-all of the RearchConsumer + InheritedWidget boilerplate:
+all of the `RearchConsumer` + `InheritedWidget` boilerplate:
 
 ```dart
 @inheritedRearchWidget
@@ -26,4 +29,47 @@ const SomeWidget(
     )
   ),
 )
+```
+
+Here is a slightly different example, this time showing the generated boilerplate:
+```dart
+(int, void Function()) scopedCount(WidgetHandle use, int startingCount) {
+  final (count, setCount) = use.state(startingCount);
+  return (count, () => setCount(count + 1));
+}
+
+class ScopedCount extends RearchConsumer {
+  const ScopedCount(this.startingCount, {required this.child, super.key});
+  final int startingCount;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetHandle use) {
+    return _ScopedCount(
+      scopedCount(use, startingCount),
+      child: child,
+    );
+  }
+
+  static _ScopedCount? _maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_ScopedCount>();
+
+  static _ScopedCount _of(BuildContext context) {
+    final widget = _maybeOf(context);
+    assert(widget != null, 'No ScopedCount found in context');
+    return widget!;
+  }
+
+  static (int, void Function())? maybeOf(BuildContext context) =>
+      _maybeOf(context)?._data;
+
+  static (int, void Function()) of(BuildContext context) => _of(context)._data;
+}
+
+class _ScopedCount extends InheritedWidget {
+  const _ScopedCount(this._data, {required super.child});
+  final (int, void Function()) _data;
+  @override
+  bool updateShouldNotify(_ScopedCount oldWidget) => oldWidget._data != _data;
+}
 ```

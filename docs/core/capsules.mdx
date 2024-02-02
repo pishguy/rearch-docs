@@ -28,7 +28,7 @@ This may sound wishy-washy, so here is a concrete example:
 ```dart title="Basic count and countPlusOne capsules"
 int countCapsule(CapsuleHandle use) => 0;
 
-int countPlusOneCapsule(CapsuleHandle use) => use(count) + 1;
+int countPlusOneCapsule(CapsuleHandle use) => use(countCapsule) + 1;
 ```
 Notice here how `countPlusOneCapsule` *consumes* `countCapsule`;
 i.e., `countPlusOneCapsule` is a function of state, where the state is the current `countCapsule`!
@@ -68,10 +68,10 @@ know that you may encounter issues when in more complex situations.
 The `CapsuleReader` provides the familiar `use(...)` syntax in Dart and `get(...)` in Rust.
 <CodeGroup title="Using The CapsuleReader">
   ```dart
-  int count(CapsuleHandle _) => 0;
+  int countCapsule(CapsuleHandle _) => 0;
 
-  int countPlusOne(CapsuleHandle use) {
-    return use(count) + 1;
+  int countPlusOneCapsule(CapsuleHandle use) {
+    return use(countCapsule) + 1;
   }
   ```
 

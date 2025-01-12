@@ -25,11 +25,16 @@ anchors:
   - title: GitHub (Docs)
     icon: github
     link: https://github.com/GregoryConrad/rearch-docs
+  - title: Discussions + Q&A (Dart)
+    icon: github
+    link: https://github.com/gregoryconrad/rearch-dart/discussions
+  - title: Discussions + Q&A (Rust)
+    icon: github
+    link: https://github.com/gregoryconrad/rearch-rs/discussions
   - title: Sponsor Me
     icon: 'hand-holding-dollar'
     link: https://github.com/sponsors/GregoryConrad
   # TODO discord or community of some sort
-  # TODO hide that extra GitHub anchor that points to the docs at the bottom
 
 sidebar:
   - - Overview

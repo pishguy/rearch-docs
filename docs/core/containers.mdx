@@ -73,7 +73,6 @@ where you are encouraged to conditionally call `get(some_capsule)` in order to s
 Also of importance:
 - Containers have cheap clones (`Arc` is used internally), so clone away
 - Containers are thread safe and are meant to be shared across threads
-- Containers are lock free and are *highly* readable, with writes blocked by a `Mutex`
 
 
 ## Listening to Changes

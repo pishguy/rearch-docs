@@ -20,8 +20,7 @@ Here's the overused count example, but with an action capsule exposing the incre
     return (count, () => setCount(count + 1));
   }
 
-  // Another good name for the following is "incrementAction"
-  void Function() countIncrementor(CapsuleHandle use) => use(countManager).$2;
+  void Function() incrementCountAction(CapsuleHandle use) => use(countManager).$2;
   ```
 
   ```rust

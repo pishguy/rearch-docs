@@ -34,23 +34,11 @@ which is exactly what we need here.
   /// Our "wrapper" capsule that returns an AsyncValue, which is often more useful in UI code.
   /// This wrapper also ensures that delayedAsyncCapsule's value is cached within the Container,
   /// as this capsule utilizes a side effect.
+  /// Note that you can also `use.future` in your UI code directly too,
+  /// in case you don't want to eagerly cache the future.
   AsyncValue<int> delayedCapsule(CapsuleHandle use) {
     final delayed = use(delayedAsyncCapsule);
     return use.future(delayed);
-  }
-
-  // A macro like the following is *planned* to make this easier/less error-prone.
-  // If you would like to see this macro sooner rather than later, please +1 this issue:
-  // https://github.com/dart-lang/language/issues/3210
-  @asyncCapsule
-  Future<int> delayed(
-    @countCapsule int count,
-  ) async {
-    final delayedCount = await Future.delayed(
-      const Duration(seconds: 1),
-      () => count,
-    );
-    return delayedCount + 1;
   }
   ```
 

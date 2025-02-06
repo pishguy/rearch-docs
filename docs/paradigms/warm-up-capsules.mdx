@@ -42,18 +42,14 @@ Here is a quick example that shows you how to warm up a capsule.
 
 <CodeGroup title="Warming up asynchronous warm up capsules">
   ```dart
-  // First, let's create a capsule in warm up mode.
-  //
-  // This generates a:
-  // - sharedPrefsAsyncCapsule  (has type of Future<SharedPreferences>)
-  // - sharedPrefsWarmUpCapsule (has type of AsyncValue<SharedPreferences>)
-  // - sharedPrefsCapsule       (has type of SharedPreferences)
-  //
-  // The async capsule is just like any other async capsule and houses the future.
-  // The warm up capsule is the capsule you can use to perform the warm up.
-  // Finally, the sharedPrefsCapsule is the one you can use synchronously!
-  @AsyncCapsule(mode: AsyncMode.warmUp)
-  Future<SharedPreferences> sharedPrefs() => SharedPreferences.getInstance();
+  final sharedPrefsAsyncCapsule = capsule((use) => SharedPreferences.getInstance());
+  final sharedPrefsWarmUpCapsule = capsule((use) {
+    final sharedPrefsFuture = use(sharedPrefsAsyncCapsule);
+    return use.future(sharedPrefsFuture);
+  });
+  final sharedPrefsCapsule = capsule((use) => use(sharedPrefsWarmUpCapsule).dataOrElse(
+    () => throw StateError('sharedPrefsWarmUpCapsule was not warmed up!'),
+  ));
 
   int? count(CapsuleHandle use) {
     // Notice how `use` returns a synchronous `SharedPreferences`,
@@ -62,28 +58,33 @@ Here is a quick example that shows you how to warm up a capsule.
   }
 
   // Now, let's create our "warm up widget"
-  @rearchWidget
-  Widget globalWarmUps({required Widget child}) {
-    return [
-      // When any of the following warm up capsules error out,
-      // the errorBuilder is invoked.
-      // If any are still loading, the loading widget is shown.
-      // If there are no AsyncErrors or AsyncLoadings, child is shown.
-      // Note: all loading happens in parallel automatically
-      // to speed up your loading times!
+  class GlobalWarmUps extends RearchConsumer {
+    const GlobalWarmUps({required this.child, super.key});
 
-      use(sharedPrefsWarmUpCapsule),
-      // other warm ups here...
-    ].toWarmUpWidget(
-      child: child,
-      loading: const Center(child: CircularProgressIndicator.adaptive()),
-      errorBuilder: (errors) => Column(children: [
-        // You might want your error display here to be prettier than this one.
-        // You can even wrap the Column in a MaterialApp/Scaffold.
-        for (final AsyncError(:error, :stackTrace) in errors)
-          Text('$error\n$stackTrace'),
-      ]),
-    );
+    final Widget child;
+    
+    Widget build(BuildContext context, WidgetHandle use) {
+      return [
+        // When any of the following warm up capsules error out,
+        // the errorBuilder is invoked.
+        // If any are still loading, the loading widget is shown.
+        // If there are no AsyncErrors or AsyncLoadings, child is shown.
+        // Note: all loading happens in parallel automatically
+        // to speed up your loading times!
+
+        use(sharedPrefsWarmUpCapsule),
+        // other warm ups here...
+      ].toWarmUpWidget(
+        child: child,
+        loading: const Center(child: CircularProgressIndicator.adaptive()),
+        errorBuilder: (errors) => Column(children: [
+          // You might want your error display here to be prettier than this one.
+          // You can even wrap the Column in a MaterialApp/Scaffold.
+          for (final AsyncError(:error, :stackTrace) in errors)
+            Text('$error\n$stackTrace'),
+        ]),
+      );
+    }
   }
 
   void main() {

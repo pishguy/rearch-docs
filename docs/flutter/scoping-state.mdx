@@ -1,75 +1,40 @@
 ---
-title: Scoping State
-description: Learn how to scope state in ReArch.
+title: Scoping State (Injections)
+description: Learn how to scope state (via Injections) in ReArch.
 ---
 
-# Scoping State 
-This page is a WIP, but you can create a new `RearchConsumer` in conjunction
+# Scoping State (Injections)
+Scoping state may be achieved via the combination of a `RearchConsumer` in conjunction
 with a new `InheritedWidget`.
-You make a new `RearchConsumer` that manages some state (or takes in some data via its constructor)
-and then pass this state into a new `InheritedWidget` to provide said state to all descendants.
 
-Something like the following macro is planned that will kill
-all of the `RearchConsumer` + `InheritedWidget` boilerplate:
+However, since that results in a _ton_ of boilerplate,
+ReArch comes with a builtin `RearchInjection` widget that "injects" state into the widget tree:
 
 ```dart
-@inheritedRearchWidget
-(int, void Function()) scopedCount(WidgetHandle use) {
-  final (count, setCount) = use.state(0);
-  return (count, () => setCount(count + 1));
+/// Provides the current count to descendants in the [Widget] tree.
+class CountInjection extends RearchInjection<CountInjection, ValueWrapper<int>> {
+  const CountInjection({required super.child, super.key});
+
+  @override
+  ValueWrapper<int> build(BuildContext context, WidgetHandle use) {
+    return use.data(0);
+  }
+
+  static ValueWrapper<int> of(BuildContext context) =>
+      RearchInjection.of<CountInjection, ValueWrapper<int>>(context);
+
+  static ValueWrapper<int>? maybeOf(BuildContext context) =>
+      RearchInjection.maybeOf<CountInjection, ValueWrapper<int>>(context);
 }
 
 const SomeWidget(
-  child: ScopedCount(
+  child: CountInjection(
     child: Builder(
       builder: (context) {
-	    final (count, _incrementCount) = ScopedCount.of(context);
-		return Text('$count');
+        final count = CountInjection.of(context);
+        return Text('${count.value}');
       },
-    )
+    ),
   ),
 )
-```
-
-Here is a slightly different example, this time showing the generated boilerplate:
-```dart
-(int, void Function()) scopedCount(WidgetHandle use, int startingCount) {
-  final (count, setCount) = use.state(startingCount);
-  return (count, () => setCount(count + 1));
-}
-
-class ScopedCount extends RearchConsumer {
-  const ScopedCount(this.startingCount, {required this.child, super.key});
-  final int startingCount;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context, WidgetHandle use) {
-    return _ScopedCount(
-      scopedCount(use, startingCount),
-      child: child,
-    );
-  }
-
-  static _ScopedCount? _maybeOf(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<_ScopedCount>();
-
-  static _ScopedCount _of(BuildContext context) {
-    final widget = _maybeOf(context);
-    assert(widget != null, 'No ScopedCount found in context');
-    return widget!;
-  }
-
-  static (int, void Function())? maybeOf(BuildContext context) =>
-      _maybeOf(context)?._data;
-
-  static (int, void Function()) of(BuildContext context) => _of(context)._data;
-}
-
-class _ScopedCount extends InheritedWidget {
-  const _ScopedCount(this._data, {required super.child});
-  final (int, void Function()) _data;
-  @override
-  bool updateShouldNotify(_ScopedCount oldWidget) => oldWidget._data != _data;
-}
 ```

@@ -25,41 +25,51 @@ Future<T> Function(T) delayedEchoFactory<T>(CapsuleHandle _) {
   return (data) => Future.delayed(const Duration(seconds: 1), () => data);
 }
 
-@rearchWidget
-Widget infiniteList() {
-  return ListView.builder(
-    itemBuilder: (context, index) => InfiniteScrollItem(index: index),
-  );
+class InfiniteList extends StatelessWidget {
+  const InfiniteList({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      itemBuilder: (context, index) => InfiniteScrollItem(index: index),
+    );
+  }
 }
 
-@rearchWidget
-Widget infiniteScrollItem(WidgetHandle use, {required int index}) {
-  final (keepAlive, setKeepAlive) = use.state(false);
-  use.automaticKeepAlive(keepAlive: keepAlive);
+class InfiniteScrollItem extends RearchConsumer {
+  const InfiniteScrollItem({required this.index, super.key});
 
-  final factory = use(delayedEchoFactory<int>);
-  final echoFuture = use.memo(() => factory(index), [factory, index]);
-  final echoState = use.future(echoFuture);
+  /// The index of this item.
+  final int index;
 
-  return ListTile(
-    selected: keepAlive,
-    onTap: () => setKeepAlive(!keepAlive),
-    leading: Icon(
-      keepAlive
-          ? Icons.task_alt_rounded
-          : Icons.radio_button_unchecked_rounded,
-    ),
-    title: switch (echoState) {
-      AsyncData(:final data) => Text('$data'),
-      AsyncLoading() => const Align(
-          alignment: Alignment.centerLeft,
-          child: CircularProgressIndicator.adaptive(),
-        ),
-      AsyncError(:final error) => Text('$error'),
-    },
-  );
-}
-```
+  @override
+  Widget build(BuildContext context, WidgetHandle use) {
+    final (keepAlive, setKeepAlive) = use.state(false);
+    use.automaticKeepAlive(keepAlive: keepAlive);
+
+    final factory = use(delayedEchoFactory<int>);
+    final echoFuture = use.memo(() => factory(index), [factory, index]);
+    final echoState = use.future(echoFuture);
+
+    return ListTile(
+      selected: keepAlive,
+      onTap: () => setKeepAlive(!keepAlive),
+      leading: Icon(
+        keepAlive
+            ? Icons.task_alt_rounded
+            : Icons.radio_button_unchecked_rounded,
+      ),
+      title: switch (echoState) {
+        AsyncData(:final data) => Text('$data'),
+        AsyncLoading() => const Align(
+            alignment: Alignment.centerLeft,
+            child: CircularProgressIndicator.adaptive(),
+          ),
+        AsyncError(:final error) => Text('$error'),
+      },
+    );
+  }
+}```
 
 And here's a complete, runnable version of the above.
 

@@ -75,11 +75,16 @@ CapsuleContainerProvider.containerOf(context).read(myListener) // flutter
 	Since using `CapsuleContainerProvider.containerOf` is frowned upon in almost all situations,
 	you can also get away with initializing listeners via the following:
 	```dart
-	@rearchWidget
-	Widget initializeListeners(WidgetHandle use, Widget child) {
-	  use(myListener);
-	  return child;
-	}
+  class InitializeListeners extends RearchConsumer {
+    const InitializeListeners({required this.child, super.key});
+
+    final Widget child;
+    
+  	Widget build(BuildContext context, WidgetHandle use) {
+  	  use(myListener);
+  	  return child;
+  	}
+  }
 	```
 	And throwing an `InitializeListeners` widget right below your `RearchBootstrapper`.
 	If you are a stickler for declarative code, this is an alternative way for you to

@@ -37,6 +37,19 @@ As you can see in the above example, capsules are nothing special;
 every capsule is merely a function that consumes a `CapsuleHandle`.
 A capsule's power is derived from from _how you use the `CapsuleHandle`_ within the capsule.
 
+<Info>
+In Dart, there is also another way to define capsules (via a syntactic sugar):
+```dart title="Example capsule written via syntactic sugar"
+final Capsule<ValueWrapper<int>> myIntCapsule = capsule((use) => use.data(0));
+```
+Note that this is exactly the same as writing the capsule out as a function,
+as the `capsule()` function is simply defined as:
+```dart title="Definition of the capsule() function"
+Capsule<T> capsule<T>(Capsule<T> cap) => cap;
+```
+You are welcome to use whichever version you prefer in your projects; they are 100% interoperable.
+</Info>
+
 
 ### Immutability
 Capsules were designed with the intent that the data they produce is *immutable*.
@@ -212,7 +225,7 @@ There are two ways to create inline capsules:
 
 Each solves slightly different use-cases.
 However, when possible, it is best to make new *intermediary* top-level capsules instead,
-and let rearch use its own optimizations to limit rebuilds.
+and let ReArch use its own optimizations to limit rebuilds.
 Remember, capsules are cheap, and are designed to be composed.
 You should only very rarely use inline capsules,
 and when you do, make sure they are *very cheap* (ideally just a constant-time look-up).
@@ -224,18 +237,20 @@ so see that for a more full example.
 However, here is a simple example to give you an idea of how `.map()` works.
 
 ```dart title="Inline capsule example with .map()"
-@rearchWidget
-Widget myListItem({
-  int listIndex,
-  WidgetHandle use,
-}) {
-  // With this inline capsule, we only rebuild when the data at
-  // myList[listIndex] changes, instead of the whole myList.
-  final dataAtIndex = use(
-    // This creates a new inline capsule that gets a particular index of myList:
-    myListCapsule.map((myList) => myList[listIndex]),
-  );
-  return Text('$dataAtIndex');
+class MyListItem extends RearchConsumer {
+  const MyListItem(this.listIndex, {super.key});
+
+  final int listIndex;
+
+  Widget build(BuildContext context, WidgetHandle use) {
+    // With this inline capsule, we only rebuild when the data at
+    // myList[listIndex] changes, instead of the whole myList.
+    final dataAtIndex = use(
+      // This creates a new inline capsule that gets a particular index of myList:
+      myListCapsule.map((myList) => myList[listIndex]),
+    );
+    return Text('$dataAtIndex');
+  }
 }
 ```
 
@@ -253,22 +268,24 @@ which should be rather rare.
 
 Here's the previous example, but rewritten to use a manually defined inline capsule.
 ```dart title="Manual inline capsule example"
-@rearchWidget
-Widget myListItem({
-  int listIndex,
-  WidgetHandle use,
-}) {
-  // With this inline capsule, we only rebuild when the data at
-  // myList[listIndex] changes, instead of the whole myList.
-  final dataAtIndex = use(
-    // This creates a new inline capsule that gets a particular index of myList:
-    (CapsuleReader use) => use(myListCapsule)[listIndex],
+class MyListItem extends RearchConsumer {
+  const MyListItem(this.listIndex, {super.key});
 
-    // While the following works, it is considered a bad practice
-	// (keep reading for an explanation):
-    // (use) => use(myListCapsule)[listIndex],
-  );
-  return Text('$dataAtIndex');
+  final int listIndex;
+
+  Widget build(BuildContext context, WidgetHandle use) {
+    // With this inline capsule, we only rebuild when the data at
+    // myList[listIndex] changes, instead of the whole myList.
+    final dataAtIndex = use(
+      // This creates a new inline capsule that gets a particular index of myList:
+      (CapsuleReader use) => use(myListCapsule)[listIndex],
+
+      // While the following works, it is considered a bad practice
+      // (keep reading for an explanation):
+      // (use) => use(myListCapsule)[listIndex],
+    );
+    return Text('$dataAtIndex');
+  }
 }
 ```
 

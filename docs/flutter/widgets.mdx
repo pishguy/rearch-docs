@@ -32,14 +32,20 @@ String greetingCapsule(CapsuleHandle use) {
 
 Next, let's use these capsules in a custom widget.
 ```dart title="Defining a custom widget"
-// Check out Unnested!
-// ReArch and Unnested are like peanut butter and jelly, as seen here.
-@rearchWidget
-Widget myAppBody(WidgetHandle use) {
-  return Unnest()
-      .scaffold(appBar: AppBar(title: Text(use(greetingCapsule))))
-      .center()
-      .textField(onChanged: use(firstNameCapsule).$2);
+class MyAppBody extends RearchConsumer {
+  const MyAppBody({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetHandle use) {
+    return Scaffold(
+      appBar: AppBar(title: Text(use(greetingCapsule))),
+      body: Center(
+        child: TextField(
+          onChanged: use(firstNameCapsule).$2,
+        ),
+      ),
+    );
+  }
 }
 
 // ...
@@ -47,60 +53,6 @@ Widget myAppBody(WidgetHandle use) {
 MyAppPage(child: const MyAppBody());
 ```
 
-
-## Parameters
-Any parameters you add to `@rearchWidget` functions
-are automatically passed onto the generated widget's constructor, similar to `@factoryCapsule`.
-```dart title="Passing custom parameters to a stateful widget"
-// Here's a modified version of the above example.
-@rearchWidget
-Widget greetingWidget(
-  WidgetHandle use, {
-  required String greeting,
-  required Widget child,
-}) {
-  return Column(children: [
-    Text('$greeting, ${use(firstNameCapsule).$1}!'),
-    child,
-  ]);
-}
-
-// ...
-
-const GreetingWidget(
-  greeting: 'Hey',
-  child: Text('Some child widget'),
-);
-```
-
-> You can even use `@rearchWidget` to create simple stateless widgets too, without the boilerplate;
-Just don't include the `WidgetHandle` parameter!
-
-Here's an example creating a stateless widget with some parameters.
-```dart title="Stateless widget with parameters"
-@rearchWidget
-Widget myTextCard(BuildContext context, {required String title}) {
-  return Card(
-    child: Text(
-      title,
-      style: Theme.of(context).textTheme.headlineLarge,
-    ),
-  );
-}
-```
-
-<Info>
-  Notice how we depended on the `BuildContext` above.
-  You can also depend on the widget's `key` too!
-</Info>
-
-Finally, here's an example creating a simple reusable widget without any parameters.
-```dart title="Stateless widget without parameters"
-@rearchWidget
-Widget myIcon() {
-  return Icon(Icons.clock, color: Colors.purple);
-}
-```
 
 ## The `RearchBuilder`
 The `RearchBuilder` enables you to delegate building a widget

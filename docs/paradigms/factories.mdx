@@ -40,21 +40,6 @@ they actually just boil down to some very straight forward syntactic sugar.
     final MyObject obj = use(myObjectFactory)('some string', 1234);
     obj.doSomething();
   }
-
-  // A macro like the following is *planned* to make this easier/less error-prone.
-  // If you would like to see this macro sooner rather than later, please +1 this issue:
-  // https://github.com/dart-lang/language/issues/3210
-  @factoryCapsule
-  MyObject myObjectFactory(
-    // Capsule dependencies:
-    @dependency1Capsule int dep1,
-    @dependency2Capsule String dep2,
-    // Factory parameters:
-    String dep3,
-    int dep4,
-  ) {
-    return MyObject(dep1, dep2, dep3, dep4);
-  }
   ```
 
   ```rust

@@ -16,10 +16,10 @@ And how to relay the state of an asynchronous action in the UI while it occurs v
 ```dart
 /// Provides a [Random].
 // NOTE: encapsulating this enables easy implementation switching later on.
-Random randomCapsule(CapsuleHandle use) => Random();
+final Capsule<Random> randomCapsule = capsule((use) => Random());
 
 /// Provides a function that signs the user in.
-Future<void> Function(String, String) signInAction(CapsuleHandle use) {
+final Capsule<Future<void> Function(String, String)> signInAction = capsule((use) {
   // NOTE: we have this `use` call up top (before it is actually needed)
   // because you must never use a CapsuleHandle across an asynchronous gap
   // (which includes in a function callback (below) or after an await).
@@ -32,34 +32,37 @@ Future<void> Function(String, String) signInAction(CapsuleHandle use) {
       if (random.nextBool()) throw Exception('Sign in failed');
     });
   };
-}
+});
 
-@rearchWidget
-Widget signInForm(WidgetHandle use) {
-  final (email, setEmail) = use.state('');
-  final (password, setPassword) = use.state('');
+class SignInForm extends RearchConsumer {
+  const SignInForm({super.key});
 
-  final (state: signInState, mutate: mutateSignIn, clear: _) =
-      use.mutation<void>();
-  final rawSignIn = use(signInAction);
-  void signIn() => mutateSignIn(rawSignIn(email, password));
+  Widget build(BuildContext context, WidgetHandle use) {
+    final (email, setEmail) = use.state('');
+    final (password, setPassword) = use.state('');
 
-  return Column(
-    children: [
-      TextField(onChanged: setEmail),
-      TextField(onChanged: setPassword),
-      ElevatedButton.icon(
-        icon: const Icon(Icons.person_rounded),
-        onPressed: signInState is AsyncLoading ? null : signIn,
-        label: const Text('Sign In'),
-      ),
-      switch (signInState) {
-        null => const SizedBox.shrink(), // no sign-in attempted yet
-        AsyncData<void>() => const Text('Signed In'),
-        AsyncLoading<void>() => const CircularProgressIndicator(),
-        AsyncError<void>(:final error) => Text('$error'),
-      },
-    ],
-  );
+    final (state: signInState, mutate: mutateSignIn, clear: _) =
+        use.mutation<void>();
+    final rawSignIn = use(signInAction);
+    void signIn() => mutateSignIn(rawSignIn(email, password));
+
+    return Column(
+      children: [
+        TextField(onChanged: setEmail),
+        TextField(onChanged: setPassword),
+        ElevatedButton.icon(
+          icon: const Icon(Icons.person_rounded),
+          onPressed: signInState is AsyncLoading ? null : signIn,
+          label: const Text('Sign In'),
+        ),
+        switch (signInState) {
+          null => const SizedBox.shrink(), // no sign-in attempted yet
+          AsyncData<void>() => const Text('Signed In'),
+          AsyncLoading<void>() => const CircularProgressIndicator(),
+          AsyncError<void>(:final error) => Text('$error'),
+        },
+      ],
+    );
+  }
 }
 ```

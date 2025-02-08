@@ -43,8 +43,6 @@ sidebar:
     - /getting-started
   - - FAQs
     - /faqs
-  - - Snippets
-    - /snippets
   - - Core Components
     - - - Capsules
         - /core/capsules
@@ -63,13 +61,17 @@ sidebar:
         - /paradigms/warm-up-capsules
       - - Listeners and Logging
         - /paradigms/listeners
-  - - Flutter Specific
-    - - - Widgets
-        - /flutter/widgets
-      - - Infinite Scrolling
-        - /flutter/infinite-scrolling
+  - - Snippets
+    - - - Testing/Mocks
+        - /snippets/testing-mocks
+      - - Widgets
+        - /snippets/widgets
       - - Scoping State
-        - /flutter/scoping-state
+        - /snippets/scoping-state
+      - - Sign In Flow
+        - /snippets/sign-in-flow
+      - - Infinite Scrolling
+        - /snippets/infinite-scrolling
   - - Side Effect Library
     - - - Rust Effects
         - https://docs.rs/rearch-effects/latest/rearch_effects/

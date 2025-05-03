@@ -1,0 +1,60 @@
+---
+title: جریان ورود
+description: راه‌حل قابل کپی-پیست برای جریان ورود با استفاده از ReArch.
+---
+
+# جریان ورود
+چطور حالت یه اکشن ناهمزمان رو توی UI در حین انجامش با استفاده از "جهش‌ها (mutations)" منتقل کنیم.
+```dart
+/// یه [Random] فراهم می‌کنه.  
+// توجه: کپسوله کردن این باعث می‌شه بعداً تغییر پیاده‌سازی آسون‌تر بشه.  
+final Capsule<Random> randomCapsule = capsule((use) => Random());
+
+/// یه تابع فراهم می‌کنه که کاربر رو وارد می‌کنه.  
+final Capsule<Future<void> Function(String, String)> signInAction = capsule((use) {
+  // توجه: ما این فراخوانی `use` رو بالا (قبل از اینکه واقعاً نیازش داشته باشیم) داریم  
+  // چون هرگز نباید از CapsuleHandle توی یه فاصله ناهمزمان استفاده کنی  
+  // (که شامل توی یه تابع callback (پایین) یا بعد از یه await می‌شه).  
+  // ولی نگران نباش، ReArch اگه یادت بره بهت یادآوری می‌کنه.  
+  final random = use(randomCapsule);
+
+  return (email, password) {
+    // پیاده‌سازی ساختگی که ممکنه خطا بده  
+    return Future.delayed(const Duration(seconds: 1), () {
+      if (random.nextBool()) throw Exception('ورود ناموفق بود');
+    });
+  };
+});
+
+class SignInForm extends RearchConsumer {
+  const SignInForm({super.key});
+
+  Widget build(BuildContext context, WidgetHandle use) {
+    final (email, setEmail) = use.state('');
+    final (password, setPassword) = use.state('');
+
+    final (state: signInState, mutate: mutateSignIn, clear: _) =
+        use.mutation<void>();
+    final rawSignIn = use(signInAction);
+    void signIn() => mutateSignIn(rawSignIn(email, password));
+
+    return Column(
+      children: [
+        TextField(onChanged: setEmail),
+        TextField(onChanged: setPassword),
+        ElevatedButton.icon(
+          icon: const Icon(Icons.person_rounded),
+          onPressed: signInState is AsyncLoading ? null : signIn,
+          label: const Text('ورود'),
+        ),
+        switch (signInState) {
+          null => const SizedBox.shrink(), // هنوز تلاشی برای ورود نشده  
+          AsyncData<void>() => const Text('وارد شد'),
+          AsyncLoading<void>() => const CircularProgressIndicator(),
+          AsyncError<void>(:final error) => Text('$error'),
+        },
+      ],
+    );
+  }
+}
+```

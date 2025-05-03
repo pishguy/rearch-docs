@@ -1,0 +1,69 @@
+---
+title: تست/ماک‌ها
+description: راه‌حل قابل کپی-پیست برای تست/استفاده از ماک‌ها توی ReArch.
+---
+
+# تست/ماک‌ها
+یه مثال کامل و قابل‌اجرا رو هم می‌تونی پایین این صفحه ببینی.
+
+```dart title="ماک کردن کپسول‌ها توی تست‌های دارت"
+// من اغلب متدهای useFooBar() رو برای منابع قابل‌حذف توی تست‌های دارت/فلاتر درست می‌کنم.  
+// اونا خیلی شبیه اثرات جانبی معمولی ترکیب می‌شن.  
+MockableContainer useContainer() {
+  final container = MockableContainer();
+  addTearDown(container.dispose);
+  return container;
+}
+
+(MockableContainer, MockClient) useMockedClientContainer() {
+  final mockClient = MockClient();
+  final container = useContainer()
+    ..mock(httpClientCapsule).apply((use) => mockClient);
+  return (container, mockClient);
+}
+
+/// [http.Client] ماک‌شده با استفاده از `mocktail`
+class MockClient extends Mock implements http.Client {}
+
+void main() {
+  test('fetchWeatherAction یه آب‌وهوای درست برمی‌گردونه', () async {
+    final (container, mockClient) = useMockedClientContainer();
+
+    const latitude = 123.0;
+    const longitude = 321.0;
+    const temperature = 20.0;
+    const weatherCode = 1.0; // = ابری  
+    Future<http.Response> expectedCall() => mockClient.get(
+          Uri.https('api.open-meteo.com', '/v1/forecast', {
+            'latitude': '$latitude',
+            'longitude': '$longitude',
+            'current_weather': 'true',
+          }),
+        );
+    when(expectedCall).thenAnswer(
+      (_) async => http.Response(
+        jsonEncode({
+          'current_weather': {
+            'temperature': temperature,
+            'weathercode': weatherCode,
+          },
+        }),
+        200,
+      ),
+    );
+
+    // fetchWeatherAction از `MockClient` که بالا ماک کردیم استفاده می‌کنه  
+    final actualWeather = await container.read(fetchWeatherAction)(
+      latitude: latitude,
+      longitude: longitude,
+    );
+    verify(expectedCall).called(1);
+    expect(
+      actualWeather,
+      const Weather(temperature: temperature, weatherCode: weatherCode),
+    );
+  });
+}
+```
+
+<Zapp id="github/GregoryConrad/rearch-dart/tree/main/examples/weather_app" />

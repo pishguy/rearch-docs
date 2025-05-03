@@ -1,0 +1,68 @@
+---
+title: ویجت‌ها
+description: یاد بگیر چطور ویجت‌های سفارشی توی ReArch با فلاتر بسازی.
+---
+
+# ویجت‌ها
+وقتی یه رابط کاربری (UI) می‌سازی، منطقیه که نماهای جداگانه رو به نیازهای تابعی‌شون تجزیه کنی:  
+- نمایش دادن داده/حالت خاص  
+- تغییر دادن داده/حالت خاص  
+- پیچیدن دور/نمایش دادن نماهای دیگه  
+
+به همین دلیل، رابط کاربری اغلب به‌عنوان یه *تابع از حالت* توصیف می‌شه؛  
+ReArch این رو یه قدم جلوتر می‌بره و رابط کاربری رو به‌عنوان یه  
+تابع از حالت *و* هر گونه اثر جانبی‌ای طبقه‌بندی می‌کنه.
+
+آشنا به نظر می‌رسه؟ چون کپسول‌ها هم توابع حالت و اثر جانبی هستن!  
+درست مثل کپسول‌ها، ویجت‌ها رو هم به‌عنوان توابعی تعریف می‌کنی که حالت و اثر جانبی مصرف می‌کنن.
+
+## یه مثال کامل
+اول، بیایم یه سری کپسول برای استفاده توی ویجت‌هامون تعریف کنیم.  
+کپسول‌ها رو می‌تونی توی همون فایل ویجت‌ها یا توی فایل‌های کاملاً جدا تعریف کنی.
+```dart title="تعریف چند کپسول"
+String _salutationCapsule(CapsuleHandle _) => 'سلام';
+
+(String, void Function(String)) firstNameCapsule(CapsuleHandle use) => use.state('آلیس');
+
+String greetingCapsule(CapsuleHandle use) {
+  return '${use(_salutationCapsule)} ${use(firstNameCapsule).$1}!';
+} 
+```
+
+بعد، بیایم از این کپسول‌ها توی یه ویجت سفارشی استفاده کنیم.
+```dart title="تعریف یه ویجت سفارشی"
+class MyAppBody extends RearchConsumer {
+  const MyAppBody({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetHandle use) {
+    return Scaffold(
+      appBar: AppBar(title: Text(use(greetingCapsule))),
+      body: Center(
+        child: TextField(
+          onChanged: use(firstNameCapsule).$2,
+        ),
+      ),
+    );
+  }
+}
+
+// ...
+
+MyAppPage(child: const MyAppBody());
+```
+
+## `RearchBuilder`
+`RearchBuilder` بهت اجازه می‌ده ساختن یه ویجت رو  
+به یه callback واگذار کنی که به `WidgetHandle` و `BuildContext` دسترسی داره.  
+این می‌تونه مفید باشه وقتی بخوای به‌سادگی یه `WidgetHandle` جدید رو به‌صورت درون‌خطی  
+با یه سری ویجت دیگه بگیری، وقتی که ساختن یه ویجت کاملاً جدید منطقی نباشه (درست مثل خود `Builder` فلاتر).
+```dart
+MyWidget(
+  child: RearchBuilder(
+    builder: (context, use) {
+      return Placeholder();
+    },
+  ),
+);
+```

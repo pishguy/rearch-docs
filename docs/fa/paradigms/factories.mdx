@@ -1,0 +1,113 @@
+---
+title: کارخانه‌ها
+description: با اصول اولیه کارخانه‌ها در ReArch آشنا شوید.
+---
+
+# کارخانه‌ها
+کارخانه‌ها (که گاهی بهشون کپسول‌های کارخانه هم می‌گن) اصلاً مختص ReArch نیستن؛  
+در واقع، ReArch این مفهوم رو از برنامه‌نویسی شیءگرا (OOP) قرض گرفته!  
+طبق تعریف [ویکی‌پدیا](https://en.wikipedia.org/wiki/Factory_(object-oriented_programming)):  
+> در برنامه‌نویسی شیءگرا، کارخانه یه شیء برای ساختن اشیای دیگه‌ست؛  
+به‌صورت رسمی، یه تابع یا متدیه که اشیایی با پروتوتایپ یا کلاس متغیر برمی‌گردونه.
+
+توی ReArch، کارخانه‌ها فقط کپسول‌هایی هستن که اشیا رو به‌صورت آنی (on-the-fly) می‌سازن  
+و می‌تونن یه سری پارامتر غیرکپسولی اضافی هم بگیرن.  
+هرچند کارخانه‌ها ممکنه توی نگاه اول پیچیده به نظر بیان،  
+ولی در واقع فقط یه نوع شکر نحوی (syntactic sugar) ساده هستن.
+
+<Info>
+  اگه قبلاً با Riverpod کار کردی،  
+  کارخانه‌ها توی ReArch مشکلات مشابهی رو که Family و AutoDispose providerها حل می‌کنن، برطرف می‌کنن.
+</Info>
+
+## یه مثال
+<CodeGroup title="مثال کپسول کارخانه">
+  ```dart
+  int dependency1Capsule(CapsuleHandle _) => 0;
+  String dependency2Capsule(CapsuleHandle _) => 'سلام دنیا!';
+
+  MyObject Function(String, int) myObjectFactory(CapsuleHandle use) {
+    // توجه کن که ما فقط قبل از برگردوندن closure کارخانه از `use` استفاده می‌کنیم؛  
+    // این مهمه، چون نمی‌تونی `use` رو توی یه فاصله زمانی ناهمزمان (asynchronous gap) فراخوانی کنی.  
+    // به عبارت دیگه، *توی بدنه خود کارخانه از USE استفاده نکن*.  
+    final dep1 = use(dependency1Capsule);
+    final dep2 = use(dependency2Capsule);
+    return (dep3, dep4) => MyObject(dep1, dep2, dep3, dep4);
+  }
+
+  void usesFactoryCapsule(CapsuleHandle use) {
+    final MyObject obj = use(myObjectFactory)('یه رشته', 1234);
+    obj.doSomething();
+  }
+  ```
+
+  ```rust
+  fn dep1(_: CapsuleHandle) -> i8 {
+      0
+  }
+  fn dep2(_: CapsuleHandle) -> &'static str {
+      "سلام دنیا!"
+  }
+
+  fn my_obj_factory(
+      CapsuleHandle { mut get, .. }: CapsuleHandle,
+  ) -> impl CData + Fn(String, i8) -> MyObject {
+    let dep1 = get(dep1);
+    let dep2 = get(dep2);
+    move |dep3, dep4| MyObject::new(dep1, dep2, dep3, dep4)
+  }
+
+  fn uses_factory(CapsuleHandle { mut get, .. }: CapsuleHandle) {
+    let obj: MyObject = get(my_obj_factory)("یه رشته".to_owned(), 1234);
+    obj.do_something();
+  }
+  ```
+</CodeGroup>
+
+<Warning>
+  درست مثل کپسول‌ها، کارخانه‌ها هر وقت کپسول‌های وابستشون تغییر کنن، دوباره ساخته می‌شن،  
+  و هر چیزی که از کارخانه استفاده می‌کنه، یه نمونه جدید از کارخانه می‌گیره!  
+  توی بیشتر موقعیت‌ها، بهتره هر وقت خود نمونه کارخانه تغییر می‌کنه،  
+  یه نمونه جدید از اشیایی که کارخانه ساخته هم بسازی.
+</Warning>
+
+## کش کردن اشیای ساخته‌شده
+<Info>
+  در حال حاضر، این بخش فقط مثال‌هایی با پیاده‌سازی دارت ارائه می‌ده،  
+  چون کش کردن اشیای ساخته‌شده توسط کارخانه‌ها معمولاً لازم نیست و توی Rust به این سادگی نیست.  
+  (هرچند اگه نیاز داری، یه نگاه به اثر جانبی `run_on_change` بنداز.)
+</Info>
+
+اگه نیاز داری:  
+- یه شیء ساخته‌شده توسط کارخانه رو کش کنی (مثلاً تا وقتی نمونه کارخانه تغییر نکرده)  
+- اشیای قدیمی ساخته‌شده توسط کارخانه رو حذف کنی تا جلوی نشتی (leak) گرفته بشه (مثلاً وقتی یه شیء جدید ساخته می‌شه)  
+
+به کد زیر یه نگاه بنداز.
+
+اگه با React یا `flutter_hooks` آشنا باشی، این کار برات خیلی طبیعی به نظر می‌رسه.  
+برای اطلاعات بیشتر، صفحه مستندات مربوط به اثرات جانبی رو ببین.
+
+```dart title="کش کردن اشیای ساخته‌شده با کارخانه‌ها"
+MyCustomObject defaultParamMyCustomObjCapsule(CapsuleHandle use) {
+  // کپسول کارخانه ما:  
+  final objFactory = use(objFactoryCapsule);
+
+  // یه کپسول دلخواه که ممکنه باعث بازسازی (rebuild) بشه  
+  // حتی اگه خود objFactory تغییر نکنه:  
+  final someString = use(someCapsule);
+
+  // فقط وقتی objFactory یا someString تغییر کردن، myObj رو دوباره بساز  
+  final myObj = use.memo(() {
+    return objFactory(someString);
+  }, [objFactory, someString]);
+
+  // هر وقت myObj تغییر کرد، شیء جدید رو برای حذف ثبت کن  
+  use.effect(() => myObj.dispose, [myObj]);
+
+  return myObj;
+}
+```
+
+این ترکیب از `memo` و `effect` خیلی رایجه،  
+مخصوصاً وقتی با `FooBarController`ها کار می‌کنی،  
+پس بهتره زودتر یاد بگیری که چطور ازشون استفاده کنی.

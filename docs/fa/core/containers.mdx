@@ -1,0 +1,130 @@
+---
+title: کانتینرها
+description: با اصول اولیه کانتینرها در ReArch آشنا شوید.
+---
+
+# کانتینرها
+بعد از کپسول‌ها، **کانتینرها** دومین بخش سطح بالایین که باید توی ReArch بفهمی.  
+کانتینرها اسمشون رو از این گرفتن که داده‌های کپسول‌ها رو "نگه می‌دارن".  
+حتی اگه فقط از فلاتر با `flutter_rearch` استفاده می‌کنی  
+(که ویجت `RearchBootstrapper` رو به جای استفاده مستقیم از کانتینرها ارائه می‌ده)،  
+باز هم بهتره بفهمی داده‌ها توی پس‌زمینه چطور مدیریت می‌شن.
+
+## پس کانتینر دقیقاً چیه؟
+به‌طور خلاصه، کانتینرها فقط یه wrapper فانتزی برای `HashMap` هستن.  
+اونا کپسول‌ها رو به حالت‌ها و داده‌های داخلیشون نگاشت (map) می‌کنن.  
+کانتینرها به‌صورت تنبل (lazy) کار می‌کنن و داده‌ها رو تا جایی که ممکنه کش می‌کنن،  
+و کپسول‌ها رو (که یادتونه—just functions هستن) فراخوانی می‌کنن  
+تا کش کانتینر رو بسازن.
+
+کانتینرها این امکانات رو ارائه می‌دن:  
+- `read()` برای خوندن داده فعلی یه سری کپسول  
+- `listen()` برای *موقتاً* گوش دادن به تغییرات یه سری کپسول  
+
+هر پیاده‌سازی ممکنه متدهای دیگه‌ای هم روی کانتینرها داشته باشه،  
+ولی می‌تونی برای اطلاعات بیشتر به مستندات API مراجعه کنی.  
+این متدها معمولاً برای موارد خیلی خاص و پیشرفته استفاده می‌شن.
+
+## خوندن کپسول‌ها
+<CodeGroup title="خوندن کپسول‌ها">
+  ```dart
+  int countCapsule(CapsuleHandle _) => 0;
+  int countPlusOneCapsule(CapsuleHandle use) => use(countCapsule) + 1;
+
+  final container = CapsuleContainer();
+  final count = container.read(countCapsule);
+  final countPlusOne = container.read(countPlusOneCapsule);
+  ```
+
+  ```rust
+  fn count_capsule(_: CapsuleHandle) -> u8 {
+      0
+  }
+
+  fn count_plus_one_capsule(CapsuleHandle { mut get, .. }: CapsuleHandle) -> u8 {
+      get(count_capsule) + 1
+  }
+
+  let container = Container::new();
+  let (count, count_plus_one) = container.read((count, count_plus_one));
+  ```
+</CodeGroup>
+
+### اطلاعات مهم فقط برای Rust
+توجه کن که توی مثال بالا یه تاپل (tuple) به `read()` پاس دادیم؛ این خیلی مهمه.  
+این کار یه خوندن *پایدار* بین کپسول‌ها رو تضمین می‌کنه، و علاوه بر این، سربار (overhead) رو کم می‌کنه.  
+سناریوی زیر رو در نظر بگیر:
+
+```rust
+let count = container.read(count_capsule);
+let count_plus_one = container.read(count_plus_one_capsule);
+```
+
+فرض کن یه thread دیگه بعد از خط اول، مقدار count کانتینر رو افزایش بده؛  
+اون وقت count می‌شه 0 و count_plus_one می‌شه 2!  
+برای همین، تا جایی که می‌تونی همه خوندن‌های *کانتینر* رو با هم گروه‌بندی کن،  
+حتی اگه همیشه به حالت همه کپسول‌هایی که می‌خونی نیاز نداشته باشی!  
+(این با توی ساخت یه کپسول فرق داره،  
+که اونجا تشویق می‌شی به‌صورت شرطی `get(some_capsule)` رو فراخوانی کنی تا از بعضی بازسازی‌ها جلوگیری کنی.)
+
+یه سری نکته مهم دیگه:  
+- کانتینرها کپی ارزونی دارن (داخلاً از `Arc` استفاده می‌شه)، پس راحت کپی‌شون کن.  
+- کانتینرها thread-safe هستن و برای اشتراک‌گذاری بین threadها طراحی شدن.
+
+## گوش دادن به تغییرات
+برای *موقتاً* گوش دادن به کپسول‌ها، مثال زیر رو ببین.
+<CodeGroup title="موقتاً گوش دادن به کپسول‌ها">
+  ```dart
+  final container = CapsuleContainer();
+  final disposeListener = container.listen((use) => print(use(fooBarCapsule)));
+
+  // وقتی دیگه نیازی به گوش دادن به تغییرات نداری:  
+  disposeListener();
+  ```
+
+  ```rust
+  let container = Container::new();
+  let handle = container.listen(|| (), |get, ()| {
+      println!("{}", get(foo_bar_capsule));
+  });
+
+  // وقتی دیگه نیازی به گوش دادن به تغییرات نداری:  
+  drop(handle);
+  ```
+</CodeGroup>
+
+اگه بخوای توی طول عمر یه کانتینر به تغییرات کپسول‌ها گوش بدی،  
+*از `listen()` استفاده نکن*.  
+به جاش، یه کپسول غیرidempotent بساز (یه روش فانتزی برای گفتن کپسولی که یه اثر جانبی ثبت می‌کنه)  
+و یه بار بخونش تا مطمئن شی که مقداردهی شده و داره گوش می‌ده.
+<CodeGroup title="گوش دادن به کپسول‌ها به‌صورت نامحدود">
+  ```dart
+  void listener(CapsuleHandle use) {
+    // asListener یه اثر جانبی no-op هست که می‌تونی  
+    // برای تعریف کپسول‌ها به‌عنوان شنونده ازش استفاده کنی  
+    use.asListener();
+
+    // به داده‌هات مثل همیشه گوش بده  
+    print(use(countCapsule));
+  }
+
+  // شنونده رو مقداردهی کن تا آپدیت‌ها رو بگیره  
+  final container = CapsuleContainer();
+  container.read(listener);
+  ```
+
+  ```rust
+  fn listener(CapsuleHandle { mut get, register }: CapsuleHandle) {
+      // as_listener یه اثر جانبی no-op هست که می‌تونی  
+      // برای تعریف کپسول‌ها به‌عنوان شنونده ازش استفاده کنی  
+      register(effects::as_listener());
+
+      // به داده‌ها مثل همیشه گوش بده  
+      println!("{}", get(foo_bar_capsule));
+  }
+
+  // شنونده رو مقداردهی کن تا آپدیت‌ها رو بگیره  
+  let container = Container::new();
+  container.read(listener);
+  ```
+</CodeGroup>

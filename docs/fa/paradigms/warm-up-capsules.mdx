@@ -1,0 +1,103 @@
+---
+title: کپسول‌های گرم‌کننده
+description: درباره کپسول‌های گرم‌کننده و نحوه استفاده‌شون توی ReArch یاد بگیر.
+---
+
+# کپسول‌های گرم‌کننده
+کپسول‌های گرم‌کننده وقتی مفیدن که یه  
+کپسول ناهمزمان داری و می‌خوای مقدارش رو توی آینده به‌صورت همزمان دسترسی کنی،  
+بدون اینکه همه کپسول‌های وابسته خودشون ناهمزمان باشن.  
+این به‌خصوص وقتی با چیزایی مثل  
+`SharedPreferences` یا `FirebaseApp` (توی دارت/فلاتر)  
+یا یه اتصال دیتابیس (توی Rust) کار می‌کنی مفیده،  
+چون فقط می‌تونی به‌صورت ناهمزمان یه کپی ازشون بگیری.
+
+تو کپسول‌های گرم‌کننده رو *گرم می‌کنی* تا هر کپسول وابسته‌ای آماده استفاده باشه.  
+برای فلاتر، یه متد الحاقی داخلی ساده وجود داره که بهت کمک می‌کنه کپسول‌ها رو گرم کنی،  
+به اسم `.toWarmUpWidget()`.
+
+<Warning>
+باید فرآیند گرم کردن رو *قبل از اینکه هر کپسول وابسته‌ای خونده یا مقداردهی بشه* انجام بدی؛  
+اگه این کار رو نکنی، یه خطای غیرقابل‌بازیابی به وجود میاد.
+</Warning>
+
+<Warning>
+فقط باید از کپسول‌های گرم‌کننده در سطح اپلیکیشن برای مقادیر ناهمزمانی استفاده کنی که:  
+1. خیلی بعیده که خطا بدن.  
+2. اگه خطا بدن، باید به‌عنوان خطاهای غیرقابل‌بازیابی در نظر گرفته بشن.  
+
+اگه چیزی توی یه کپسول گرم‌کننده توی فلاتر خطا بده، هر چیزی زیر ویجت گرم‌کننده  
+توی درخت ویجت غیرقابل‌دسترسی می‌شه و ویجت خطا نمایش داده می‌شه!
+</Warning>
+
+توی فلاتر، اغلب (و وقتی ممکنه، باید) از `.toWarmUpWidget()` استفاده کنی  
+تا کپسول‌ها رو توی بخش‌های تودرتوتر درخت ویجت گرم کنی.  
+گرم کردن کپسول‌ها توی یه مکان تودرتوتر یه روش بهتر از گرم کردن کپسول‌ها به‌صورت عمومیه  
+(یعنی درست زیر `RearchBootstrapper`)،  
+ولی برای مواردی مثل `SharedPreferences` و `FirebaseApp`، منطقیه که اونا رو به‌صورت عمومی گرم کنی.
+
+## یه مثال
+اینجا یه مثال سریع داریم که نشون می‌ده چطور یه کپسول رو گرم کنی.
+
+<CodeGroup title="گرم کردن کپسول‌های گرم‌کننده ناهمزمان">
+  ```dart
+  final sharedPrefsAsyncCapsule = capsule((use) => SharedPreferences.getInstance());
+  final sharedPrefsWarmUpCapsule = capsule((use) {
+    final sharedPrefsFuture = use(sharedPrefsAsyncCapsule);
+    return use.future(sharedPrefsFuture);
+  });
+  final sharedPrefsCapsule = capsule((use) => use(sharedPrefsWarmUpCapsule).dataOrElse(
+    () => throw StateError('کپسول sharedPrefsWarmUpCapsule گرم نشده!'),
+  ));
+
+  int? count(CapsuleHandle use) {
+    // توجه کن که `use` یه `SharedPreferences` همزمان برمی‌گردونه،  
+    // یعنی *نه* یه AsyncValue<SharedPreferences>.  
+    return use(sharedPrefsCapsule).getInt('count');
+  }
+
+  // حالا بیایم ویجت "گرم‌کننده"مون رو بسازیم  
+  class GlobalWarmUps extends RearchConsumer {
+    const GlobalWarmUps({required this.child, super.key});
+
+    final Widget child;
+    
+    Widget build(BuildContext context, WidgetHandle use) {
+      return [
+        // وقتی هر کدوم از کپسول‌های گرم‌کننده زیر خطا بدن،  
+        // errorBuilder فراخوانی می‌شه.  
+        // اگه هر کدوم هنوز در حال لود شدن باشن، ویجت لودینگ نشون داده می‌شه.  
+        // اگه هیچ AsyncError یا AsyncLoading وجود نداشته باشه، child نشون داده می‌شه.  
+        // توجه: همه لودینگ‌ها به‌صورت خودکار موازی انجام می‌شن  
+        // تا زمان لودینگت سریع‌تر بشه!  
+
+        use(sharedPrefsWarmUpCapsule),
+        // کپسول‌های گرم‌کننده دیگه اینجا...  
+      ].toWarmUpWidget(
+        child: child,
+        loading: const Center(child: CircularProgressIndicator.adaptive()),
+        errorBuilder: (errors) => Column(children: [
+          // شاید بخوای نمایش خطاهات اینجا قشنگ‌تر از این باشه.  
+          // حتی می‌تونی Column رو توی یه MaterialApp/Scaffold بپیچی.  
+          for (final AsyncError(:error, :stackTrace) in errors)
+            Text('$error\n$stackTrace'),
+        ]),
+      );
+    }
+  }
+
+  void main() {
+    runApp(RearchBootstrapper(
+      child: GlobalWarmUps(child: MaterialApp(...)),
+    ));
+  }
+  ```
+</CodeGroup>
+
+و اینجا یه نسخه کامل و قابل‌اجرا از مثال بالا رو داریم.
+
+<Zapp id="github/GregoryConrad/rearch-dart/tree/main/examples/count_warm_up" />
+
+## اعتبار
+گرم کردن کپسول‌ها یه الگوی خاص ReArch نیست؛  
+در واقع، من این رو مستقیماً از Riverpod کپی کردم و یه سری تغییرات کوچک دادم تا ساده‌تر بشه.

@@ -1,0 +1,102 @@
+---
+title: اکشن‌ها
+description: با اصول اولیه اکشن‌ها در ReArch آشنا شوید.
+---
+
+# اکشن‌ها
+اکشن‌ها (که گاهی بهشون کپسول‌های اکشن هم می‌گن) خیلی شبیه کپسول‌های کارخانه هستن،  
+حداقل از این نظر که کپسول‌هایی هستن که یه تابع برمی‌گردونن.  
+ولی بر خلاف کارخانه‌ها، اکشن‌ها (بیشتر اوقات) برای ساختن یه مقدار طراحی نشدن،  
+بلکه برای انجام یه عملیات (که معمولاً شامل یه سری اثرات جانبیه) ساخته شدن.
+
+اکشن‌ها یه انتزاع مفید برای *همه* توابعی هستن که توی کپسول‌ها یا UI فراخوانی می‌شن،  
+ولی به‌خصوص برای اونایی که به داده‌های یه سری کپسول‌های دیگه وابسته هستن خیلی کاربردین.
+
+اینجا همون مثال شمارش بیش‌ازحد استفاده‌شده‌ست، ولی با یه کپسول اکشن که عملیات افزایش رو ارائه می‌ده.
+<CodeGroup title="ایجاد کپسول‌های ناهمزمان">
+  ```dart
+  (int, void Function()) countManager(CapsuleHandle use) {
+    final (count, setCount) = use.state(0);
+    return (count, () => setCount(count + 1));
+  }
+
+  void Function() incrementCountAction(CapsuleHandle use) => use(countManager).$2;
+  ```
+
+  ```rust
+  fn count_manager(CapsuleHandle { register, .. }: CapsuleHandle) -> (u32, impl CData + Fn()) {
+      let (count, set_count) = register(effects::state::<Cloned<_>>(0));
+      let increment = move || set_count(state + 1);
+      (count, increment)
+  }
+
+  fn increment_count_action(CapsuleHandle { mut get, .. }: CapsuleHandle) -> impl CData + Fn() {
+      get(count_manager).1
+  }
+  ```
+</CodeGroup>
+
+## یه مثال عملی
+> چند سال پیش، یه اپلیکیشن صدور صورت‌حساب برای یه شرکت مالی با استفاده از Rx  
+> و یه سری تکنولوژی‌های دیگه نوشتم.  
+> اخیراً مجبور شدم اپلیکیشن رو آپدیت کنم و تصمیم گرفتم یه تست خوب برای ReArch باشه.  
+> این پارادایم خاص رو، همراه با چند تا دیگه، موقع بازنویسی ساختم.
+
+نیازمندی‌های زیر (به‌صورت ساده‌شده) رو برای یه اپلیکیشن صدور صورت‌حساب در نظر بگیر:  
+1. بارگذاری اطلاعات مشتری‌ها، شامل دارایی‌هاشون  
+2. تولید یه PDF از صورت‌حساب‌هایی که باید برای مشتری‌ها فرستاده بشه  
+3. دانلود/پرینت اون صورت‌حساب‌ها  
+4. پرینت پاکت‌ها برای فرستادن صورت‌حساب‌ها  
+5. استخراج/نمایش یه سری اطلاعات/آمار دیگه که شرکت درخواست کرده  
+
+اسپویلر: هر کدوم از این نیازمندی‌ها می‌تونن به‌عنوان یه اکشن مدل‌سازی بشن!  
+(توی پیاده‌سازی واقعی که من نوشتم،  
+تولید صورت‌حساب‌ها/پاکت‌ها/آمارها به کپسول‌های خصوصی خارج از خود اکشن‌ها منتقل شدن  
+تا توی بعضی موقعیت‌ها کش کردن فعال بشه، که می‌تونی پایین‌تر ببینی.)
+
+اینجا یه دید کلی (فشرده) از پیاده‌سازیم برای نیازمندی‌های بالا رو می‌تونی ببینی.
+```dart
+// بارگذاری مشتری‌ها:
+
+/// اکشنی که همه مشتری‌ها رو از یه فایل اکسل بارگذاری می‌کنه.
+void Function() clientLoaderCapsule(CapsuleHandle use) {
+  // allClientsManager یه کپسوله که از اثر جانبی mutation استفاده می‌کنه  
+  // تا مشتری‌ها رو از یه فایل اکسل که کاربر داده بارگذاری کنه.  
+  return use(allClientsManager).mutate;
+}
+
+// صدور صورت‌حساب:
+
+/// صورت‌حساب‌های مشتری‌هایی که باید فاکتور بشن رو نشون می‌ده.
+Future<Uint8List> _invoicesCapsule(CapsuleHandle use) => throw 'پیاده‌سازی مخفیه';
+
+/// اکشنی که صورت‌حساب‌ها رو پرینت می‌کنه.
+Future<void> Function() invoicesPrinterCapsule(CapsuleHandle use) {
+  final invoices = use(_invoicesCapsule);
+  return () => Printing.layoutPdf(onLayout: (_) => invoices);
+}
+
+/// اکشنی که صورت‌حساب‌ها رو دانلود می‌کنه.
+Future<void> Function() invoicesDownloaderCapsule(CapsuleHandle use) {
+  final invoices = use(_invoicesCapsule);
+  final filename = use(_invoicesFilenameCapsule); // یه کپسول خصوصی دیگه  
+  return () async =>
+      Printing.sharePdf(bytes: await invoices, filename: filename);
+}
+
+// پاکت‌ها:
+
+/// پاکت‌های مشتری‌هایی که باید فاکتور بشن رو نشون می‌ده.
+Future<Uint8List> _envelopesCapsule(CapsuleHandle use) => throw 'پیاده‌سازی مخفیه';
+
+/// اکشنی که پاکت‌ها رو پرینت می‌کنه.
+Future<void> Function() envelopesPrinterCapsule(CapsuleHandle use) {
+  final envelopes = use(_envelopesCapsule);
+  return () => Printing.layoutPdf(onLayout: (_) => envelopes);
+}
+```
+
+می‌بینی چقدر مدل‌سازی یه اپلیکیشن مثل بالا باهاش ساده می‌شه؟  
+به‌علاوه، این پارادایم *کاملاً اتصال کد رو از بین می‌بره*،  
+چون UI یا کپسول‌های دیگه‌ت هیچ اطلاعی از نحوه کار منطق کسب‌وکار ندارن  
+و فقط یه تابع برای فراخوانی بهشون داده می‌شه.

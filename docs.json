@@ -199,9 +199,9 @@
       {
         "group": "کتابخانه افکت‌های جانبی",
         "pages": [
-          { "title": "افکت‌های جانبی راست", "href": "https://docs.rs/rearch-effects/latest/rearch_effects/" },
-          { "title": "افکت‌های جانبی دارت", "href": "https://pub.dev/documentation/rearch/latest/rearch/BuiltinSideEffects.html" },
-          { "title": "افکت‌های جانبی ویجت فلاتر", "href": "https://pub.dev/documentation/flutter_rearch/latest/flutter_rearch/BuiltinWidgetSideEffects.html" }
+          { "title": "افکت‌های جانبی Rust", "href": "https://docs.rs/rearch-effects/latest/rearch_effects/" },
+          { "title": "افکت‌های جانبی Dart", "href": "https://pub.dev/documentation/rearch/latest/rearch/BuiltinSideEffects.html" },
+          { "title": "افکت‌های جانبی ویجت Flutter", "href": "https://pub.dev/documentation/flutter_rearch/latest/flutter_rearch/BuiltinWidgetSideEffects.html" }
         ]
       }
     ]

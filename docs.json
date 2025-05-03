@@ -73,37 +73,37 @@
     "default": [
       {
         "pages": [
-          { "title": "Overview", "href": "/" },
-          { "title": "Getting Started", "href": "/getting-started" },
-          { "title": "FAQs", "href": "/faqs" }
+          { "title": "Overview", "href": "/en/" },
+          { "title": "Getting Started", "href": "/en/getting-started" },
+          { "title": "FAQs", "href": "/en/faqs" }
         ]
       },
       {
         "group": "Core Components",
         "pages": [
-          { "title": "Capsules", "href": "/core/capsules" },
-          { "title": "Containers", "href": "/core/containers" },
-          { "title": "Side Effects", "href": "/core/effects" }
+          { "title": "Capsules", "href": "/en/core/capsules" },
+          { "title": "Containers", "href": "/en/core/containers" },
+          { "title": "Side Effects", "href": "/en/core/effects" }
         ]
       },
       {
         "group": "Paradigms",
         "pages": [
-          { "title": "Factories", "href": "/paradigms/factories" },
-          { "title": "Actions", "href": "/paradigms/actions" },
-          { "title": "Asynchronous Capsules", "href": "/paradigms/async-capsules" },
-          { "title": "Warm Up Capsules (Async to Sync)", "href": "/paradigms/warm-up-capsules" },
-          { "title": "Listeners and Logging", "href": "/paradigms/listeners" }
+          { "title": "Factories", "href": "/en/paradigms/factories" },
+          { "title": "Actions", "href": "/en/paradigms/actions" },
+          { "title": "Asynchronous Capsules", "href": "/en/paradigms/async-capsules" },
+          { "title": "Warm Up Capsules (Async to Sync)", "href": "/en/paradigms/warm-up-capsules" },
+          { "title": "Listeners and Logging", "href": "/en/paradigms/listeners" }
         ]
       },
       {
         "group": "Snippets",
         "pages": [
-          { "title": "Testing/Mocks", "href": "/snippets/testing-mocks" },
-          { "title": "Widgets", "href": "/snippets/widgets" },
-          { "title": "Scoping State", "href": "/snippets/scoping-state" },
-          { "title": "Sign In Flow", "href": "/snippets/sign-in-flow" },
-          { "title": "Infinite Scrolling", "href": "/snippets/infinite-scrolling" }
+          { "title": "Testing/Mocks", "href": "/en/snippets/testing-mocks" },
+          { "title": "Widgets", "href": "/en/snippets/widgets" },
+          { "title": "Scoping State", "href": "/en/snippets/scoping-state" },
+          { "title": "Sign In Flow", "href": "/en/snippets/sign-in-flow" },
+          { "title": "Infinite Scrolling", "href": "/en/snippets/infinite-scrolling" }
         ]
       },
       {
